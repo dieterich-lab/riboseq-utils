@@ -77,7 +77,7 @@ default_min_metagene_profile_count = 1000
 default_min_metagene_profile_bayes_factor_mean = 5
 default_max_metagene_profile_bayes_factor_var = 5
 
-def get_periodic_lengths_and_offsets(config, name, do_not_call=False):
+def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=False):
     # check if we specified to just use a fixed offset and length
     if 'use_fixed_lengths' in config:
         lengths = config['lengths']
@@ -98,7 +98,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False):
     note_str = config.get('note', None)
 
     periodic_offsets = filenames.get_periodic_offsets(config['riboseq_data'], name, 
-        is_unique=True, note=note_str)
+        is_unique=True, is_merged=is_merged, note=note_str)
     
     if not os.path.exists(periodic_offsets):
         msg = ("The periodic offsets file does not exist. Please ensure the select-periodic-offsets "

@@ -118,7 +118,6 @@ def get_bitseq_transcript_info(transcript_fasta):
     f = "{}.tr".format(transcript_fasta)
     return f
 
-
 ### c
 def get_cds_bed(base_path, name, is_merged=False):
     m = get_merged_string(is_merged)
@@ -145,7 +144,6 @@ def get_gtf(base_path, name, is_merged=False):
     m = get_merged_string(is_merged)
     fn = '{}{}.gtf'.format(name, m)
     return os.path.join(base_path, fn)
-
 
 ### m
 
@@ -177,7 +175,6 @@ def get_metagene_profiles_bayes_factors(riboseq_base, name, length=None, is_uniq
     s = s + ".metagene-periodicity-bayes-factors.csv.gz"
     return s
 
-
 # used
 def get_models(models_base, model_type):
     path_ex = os.path.join(models_base, model_type, '*pkl')
@@ -185,7 +182,6 @@ def get_models(models_base, model_type):
     return models
 
 ### o
-
 # used
 def get_orfs(base_path, name, note=None):
     note_str = get_note_string(note)
@@ -714,7 +710,6 @@ def get_translational_efficiency(base_path, condition, is_merged=False, note=Non
     fn = '{}{}{}.translational-efficiency.csv.gz'.format(condition, m, n)
     return os.path.join(base_path, fn)
 
-
 ### w
 
 # used
@@ -725,8 +720,9 @@ def get_without_adapters_base(base_path, name, note=None):
 
 # used
 def get_without_adapters_fastq(base_path, name, note=None):
-    n = get_note_string(note)
-    return os.path.join(base_path, 'without-adapters', '{}{}.fastq.gz'.format(name, n))
+    base = get_without_adapters_base(base_path, name, note=note)
+    fastq = "{}.fastq.gz".format(base)
+    return fastq
 
 def get_without_adapters_fastqc(base_path):
     return os.path.join(base_path, 'without-adapters', 'fastqc')
@@ -740,7 +736,8 @@ def get_without_adapters_fastqc_data(base_path, name, note=None):
 # used
 def get_with_rrna_fastq(base_path, name, note=None):
     n = get_note_string(note)
-    return os.path.join(base_path, 'with-rrna', '{}{}.fastq.gz'.format(name, n))
+    name = "{}{}".format(name, n)
+    return os.path.join(base_path, 'with-rrna', '{}.fastq.gz'.format(name))
 
 # used
 def get_with_rrna_fastqc(base_path):
@@ -754,7 +751,8 @@ def get_with_rrna_fastqc_data(base_path, name, note=None):
 # used
 def get_without_rrna_fastq(base_path, name, note=None):
     n = get_note_string(note)
-    return os.path.join(base_path, 'without-rrna', '{}{}.fastq.gz'.format(name, n))
+    name = "{}{}".format(name, n)
+    return os.path.join(base_path, 'without-rrna', '{}.fastq.gz'.format(name))
 
 def get_without_rrna_fastqc(base_path):
     return os.path.join(base_path, 'without-rrna', 'fastqc')
