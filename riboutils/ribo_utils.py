@@ -2,7 +2,7 @@ import logging
 import os
 import pandas as pd
 
-import ribo_utils.filenames as filenames
+import riboutils.ribo_filenames as filenames
 
 ###
 #   The following functions are all used for parsing replicates, etc., from the config file.
