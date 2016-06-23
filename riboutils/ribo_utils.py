@@ -74,10 +74,73 @@ def get_matching_conditions(config):
 ###
 
 default_min_metagene_profile_count = 1000
-default_min_metagene_profile_bayes_factor_mean = 5
-default_max_metagene_profile_bayes_factor_var = 5
+default_min_metagene_bf_mean = 5
+default_max_metagene_bf_var = None
+default_min_metagene_bf_likelihood = 0.5
 
 def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=False):
+    """ This function applies a set of filters to metagene profiles to select those
+        which are "periodic" based on the read counts and Bayes factor estimates.
+
+        First, the function checks if the configuration file sets the 
+        'use_fixed_lengths' flag is set. If so, then the specified lengths and
+        offsets are returned.
+
+        Otherwise, the function opens the appropriate file and extracts the filter
+        values from the configuration file. In particular, it looks for the
+        following keys:
+
+        min_metagene_profile_count (float) : the minimum number of reads for a 
+            particular length in the filtered genome profile. Read lengths with 
+            fewer than this number of reads will not be used. default: 1000
+
+        min_metagene_bf_mean (float) : if max_metagene_profile_bayes_factor_var 
+            is not None, then this is taken as a hard threshold on the estimated 
+            Bayes factor mean. If min_metagene_profile_bayes_factor_likelihood is 
+            given, then this is taken as the boundary value; that is, a profile is
+            "periodic" if:
+
+                    [P(bf > min_metagene_bf_mean)] > min_metagene_bf_likelihood
+
+            If both max_metagene_bf_var and min_metagene_bf_likelihood are None, 
+            then this is taken as a hard threshold on the mean for selecting 
+            periodic read lengths.
+
+            If both max_metagene_bf_var and min_metagene_bf_likelihood are given, 
+            then both filters will be applied and the result will be the intersection.
+
+        max_metagene_bf_var (float) : if given, then this is taken as a hard threshold
+            on the estimated Bayes factor variance. default: None (i.e., this filter
+            is not used)
+
+        min_metagene_bf_likelihood (float) : if given, then this is taken a threshold
+            on the likelihood of periodicity (see min_metagene_bf_mean description
+            for more details). default: 0.5
+
+        Args:
+            config (dictionary) : the configuration information(see description)
+
+            name (string) : the name of the dataset in question
+
+            do_not_call (bool) : whether the metagene bf file should exist. If false,
+                then dummy values are returned (and a warning message is printed).
+
+            is_merged (bool) : whether the "merged" transcripts are used (i.e., is
+                this for rpbp or ribo-te)
+
+        Returns:
+            lengths (list of strings) : all of the periodic read lengths
+
+            offsets (list of strings) : the corresponding P-site offsets for the
+                read lengths. 
+
+        Imports:
+            numpy
+            scipy.stats
+    """
+    import numpy as np
+    import scipy.stats
+
     # check if we specified to just use a fixed offset and length
     if 'use_fixed_lengths' in config:
         lengths = config['lengths']
@@ -89,11 +152,14 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     min_metagene_profile_count = config.get(
         "min_metagene_profile_count", default_min_metagene_profile_count)
 
-    min_metagene_profile_bayes_factor_mean = config.get(
-        "min_metagene_profile_bayes_factor_mean", default_min_metagene_profile_bayes_factor_mean)
+    min_bf_mean = config.get(
+        "min_metagene_bf_mean", default_min_metagene_bf_mean)
 
-    max_metagene_profile_bayes_factor_var = config.get(
-        "max_metagene_profile_bayes_factor_var", default_max_metagene_profile_bayes_factor_var)
+    max_bf_var = config.get(
+        "max_metagene_bf_var", default_max_metagene_bf_var)
+        
+    min_bf_likelihood = config.get(
+        "min_metagene_bf_likelihood", default_min_metagene_bf_likelihood)
 
     note_str = config.get('note', None)
 
@@ -118,11 +184,47 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
             raise FileNotFoundError(msg)
     
     offsets_df = pd.read_csv(periodic_offsets)
-    m_count = offsets_df['highest_peak_profile_sum'] > min_metagene_profile_count
-    m_bf_mean = offsets_df['highest_peak_bf_mean'] > min_metagene_profile_bayes_factor_mean
-    m_bf_var = offsets_df['highest_peak_bf_var'] < max_metagene_profile_bayes_factor_var
 
-    filtered_periodic_offsets = offsets_df[m_count & m_bf_mean & m_bf_var]
+
+    # we always use the count filter
+    m_count = offsets_df['highest_peak_profile_sum'] > min_metagene_profile_count
+
+    # which bf mean/variance filters do we use? 
+    m_bf_mean = True
+    m_bf_var = True
+    m_bf_likelihood = True
+
+    if max_bf_var is not None:
+        m_bf_mean = offsets_df['highest_peak_bf_mean'] > min_bf_mean
+        m_bf_var = offsets_df['highest_peak_bf_var'] < max_bf_var
+    if min_bf_likelihood is not None:
+        # first, calculate the likelihood that the true BF is greater than m_bf_mean
+
+        # the likelihood that BF>min_mean is 1-cdf(estimated_mean, estimated_var)
+
+        # scipy parameterizes the normal using the std, so use sqrt(var)
+
+        likelihood = 1-scipy.stats.norm.cdf(min_bf_mean, offsets_df['highest_peak_bf_mean'], 
+            np.sqrt(offsets_df['highest_peak_bf_var']))
+
+        nans = np.isnan(likelihood)
+        num_nans = sum(nans)
+        num_predictions = len(likelihood)
+
+        msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
+        logging.debug(msg)
+
+        max_likelihood = max(likelihood[~nans])
+        msg = "Maximum likelihood: {}".format(max_likelihood)
+        logging.debug(msg)
+
+        # now filter
+        m_bf_likelihood = likelihood > min_bf_likelihood
+
+    if (max_bf_var is None) and (min_bf_likelihood is None):
+        m_bf_mean = bf['highest_peak_bf_mean'] > min_bf_mean
+
+    filtered_periodic_offsets = offsets_df[m_count & m_bf_mean & m_bf_var & m_bf_likelihood]
 
     offsets = filtered_periodic_offsets['highest_peak_offset']
     lengths = filtered_periodic_offsets['length']
