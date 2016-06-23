@@ -197,6 +197,11 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     if max_bf_var is not None:
         m_bf_mean = offsets_df['highest_peak_bf_mean'] > min_bf_mean
         m_bf_var = offsets_df['highest_peak_bf_var'] < max_bf_var
+
+        msg = ("Using the mean and variance filter. min_mean: {}, max_var: {}"
+            .format(min_bf_mean, max_bf_var))
+        logging.debug(msg)
+
     if min_bf_likelihood is not None:
         # first, calculate the likelihood that the true BF is greater than m_bf_mean
 
@@ -212,6 +217,10 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
         num_predictions = len(likelihood)
 
         msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
+        logging.debug(msg)
+
+        msg = ("Using the likelihood filter. min_mean: {}, min_likelihood: {}"
+            .format(min_bf_mean, min_bf_likelihood))
         logging.debug(msg)
 
         max_likelihood = max(likelihood[~nans])
