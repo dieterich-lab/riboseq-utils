@@ -222,8 +222,8 @@ def get_orf_type_profile_base(riboseq_base, name, length=None, offset=None, is_u
 
 
 
-def get_orf_type_profile_image(base_path, orf_type='', image_type=''):
-    fn = ".{}.metagene-profiles.{}".format(orf_type, image_type)
+def get_orf_type_profile_image(base_path, orf_type, strand, image_type='eps'):
+    fn = ".{}.{}.metagene-profiles.{}".format(orf_type, strand, image_type)
     return base_path + fn
 
 def get_orf_types_pie_chart(riboseq_base, name, length=None, offset=None, is_unique=False, 
@@ -231,7 +231,7 @@ def get_orf_types_pie_chart(riboseq_base, name, length=None, offset=None, is_uni
         reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
         image_type='pdf'):
     
-    subfolder = os.path.join('orf-predictions', 'plots')
+    subfolder = os.path.join('orf-profiles', 'plots')
     s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
         fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
