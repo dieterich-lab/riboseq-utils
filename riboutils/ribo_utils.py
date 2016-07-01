@@ -393,9 +393,10 @@ def get_predicted_orfs(bf, min_signal=default_min_signal,
         msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
         logging.debug(msg)
 
-        max_likelihood = max(likelihood[~nans])
-        msg = "Maximum likelihood: {}".format(max_likelihood)
-        logging.debug(msg)
+        if num_nans != num_predictions:
+            max_likelihood = max(likelihood[~nans])
+            msg = "Maximum likelihood: {}".format(max_likelihood)
+            logging.debug(msg)
 
         # now filter
         m_bf_likelihood = likelihood > min_bf_likelihood

@@ -231,7 +231,7 @@ def get_orf_types_pie_chart(riboseq_base, name, length=None, offset=None, is_uni
         reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
         image_type='pdf'):
     
-    subfolder = os.path.join('orf-profiles', 'plots')
+    subfolder = os.path.join('orf-predictions', 'plots')
     s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
         fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
