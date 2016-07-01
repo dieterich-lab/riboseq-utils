@@ -48,6 +48,12 @@ def get_fraction_string(fraction=None):
         fraction_str = ".frac-{}".format(fraction)
     return fraction_str
 
+def get_grouped_string(is_grouped):
+    g = ""
+    if is_grouped:
+        g = ".grouped"
+    return g
+
 def get_length_string(length=None):
     l = ""
     if length is not None:
@@ -188,6 +194,52 @@ def get_orfs(base_path, name, note=None):
     fn = '{}.genomic-orfs{}.bed.gz'.format(name, note_str)
     return os.path.join(base_path, 'transcript-index', fn)
 
+
+def get_orf_length_distribution_line_graph(riboseq_base, name, length=None, offset=None, is_unique=False, 
+        is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
+        reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
+        image_type='pdf'):
+    
+    subfolder = os.path.join('orf-predictions', 'plots')
+    s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
+        is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
+        fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
+        is_grouped=is_grouped, is_chisq=is_chisq)
+    s = s + ".orf-lengths.{}".format(image_type)
+    return s
+
+
+def get_orf_type_profile_base(riboseq_base, name, length=None, offset=None, is_unique=False, 
+        is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
+        reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False):
+    
+    subfolder = os.path.join('orf-predictions', 'plots')
+    s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
+        is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
+        fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
+        is_grouped=is_grouped, is_chisq=is_chisq)
+    return s
+
+
+
+def get_orf_type_profile_image(base_path, orf_type='', image_type=''):
+    fn = ".{}.metagene-profiles.{}".format(orf_type, image_type)
+    return base_path + fn
+
+def get_orf_types_pie_chart(riboseq_base, name, length=None, offset=None, is_unique=False, 
+        is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
+        reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
+        image_type='pdf'):
+    
+    subfolder = os.path.join('orf-predictions', 'plots')
+    s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
+        is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
+        fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
+        is_grouped=is_grouped, is_chisq=is_chisq)
+    s = s + ".orf-types.{}".format(image_type)
+    return s
+
+
 ### p
 
 # used
@@ -240,7 +292,7 @@ def get_raw_data_fastqc_data(base_path, filename):
 # used
 def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, is_smooth=False, fraction=None, 
-        reweighting_iterations=None, is_chisq=False, is_merged=False, note=None):
+        reweighting_iterations=None, is_chisq=False, is_merged=False, is_grouped=False, note=None):
     
     cds_only = get_cds_only_string(is_cds_only)
     unique = get_unique_string(is_unique)
@@ -253,8 +305,10 @@ def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, i
     s = get_smooth_string(is_smooth)
     f = get_fraction_string(fraction)
     r = get_reweighting_iterations_string(reweighting_iterations)
+    g = get_grouped_string(is_grouped)
     return os.path.join(riboseq_base, sub_folder, 
-        '{}{}{}{}{}{}{}{}{}{}{}{}'.format(name, n, transcriptome, m, unique, cds_only, l, o, s, f, r, chisq))
+        '{}{}{}{}{}{}{}{}{}{}{}{}{}'.format(
+        name, n, transcriptome, m, unique, cds_only, l, o, s, f, r, chisq, g))
 
 
 
@@ -528,7 +582,7 @@ def get_riboseq_profiles(riboseq_base, name, length=None, offset=None, is_unique
             is_smooth=is_smooth, fraction=fraction, 
             reweighting_iterations=reweighting_iterations, note=note)
 
-    s = s + ".profiles.mtx"
+    s = s + ".profiles.mtx.gz"
     return s
 
 # r

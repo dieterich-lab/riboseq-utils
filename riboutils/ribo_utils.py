@@ -5,6 +5,27 @@ import pandas as pd
 import riboutils.ribo_filenames as filenames
 
 ###
+#   The following labels are used to group similar ORF types.
+###
+orf_types = ['canonical', 'canonical_extended', 'canonical_truncated', 
+    'five_prime', 'three_prime', 'noncoding', 'novel', 'five_prime_overlap',
+    'suspect_overlap', 'three_prime_overlap', 'within']
+
+
+orf_type_labels = ['canonical', 'canonical_variant', 'five_prime', 
+    'three_prime', 'noncoding', 'other', 'novel']
+
+orf_type_labels_mapping = {
+    'canonical': ['canonical'],
+    'canonical_variant': ['canonical_extended', 'canonical_truncated'],
+    'five_prime': ['five_prime'],
+    'three_prime': ['three_prime'],
+    'noncoding': ['noncoding'],
+    'novel': ['novel'],
+    'other': ['five_prime_overlap', 'suspect_overlap', 'three_prime_overlap', 'within']
+}
+
+###
 #   The following functions are all used for parsing replicates, etc., from the config file.
 ###
 
