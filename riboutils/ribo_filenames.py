@@ -211,9 +211,10 @@ def get_orf_length_distribution_line_graph(riboseq_base, name, length=None, offs
 
 def get_orf_type_profile_base(riboseq_base, name, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
-        reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False):
+        reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
+        subfolder='orf-predictions'):
     
-    subfolder = os.path.join('orf-predictions', 'plots')
+    subfolder = os.path.join(subfolder, 'plots')
     s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
         fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
