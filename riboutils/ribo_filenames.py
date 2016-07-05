@@ -120,6 +120,19 @@ def get_transcriptome_string(is_transcriptome):
 
 ### b
 
+
+def get_bf_rpkm_scatter_plot(riboseq_base, name, length=None, offset=None, is_unique=False, 
+        is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
+        reweighting_iterations=None,  note=None, image_type='pdf'):
+    
+    subfolder = os.path.join('orf-predictions', 'plots')
+    s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
+        is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
+        fraction=fraction, reweighting_iterations=reweighting_iterations, note=note)
+    s = s + ".bf-rpkm.{}".format(image_type)
+    return s
+
+
 def get_bitseq_transcript_info(transcript_fasta):
     f = "{}.tr".format(transcript_fasta)
     return f
