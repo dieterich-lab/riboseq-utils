@@ -10,9 +10,9 @@ def get_cds_only_string(is_cds_only):
     return cds_only
 
 def get_chisq_string(is_chisq):
-    chisq = ""
+    chisq = ".rpbp"
     if is_chisq:
-        chisq = ".chisq"
+        chisq = ".rpchi"
     return chisq
 
 def get_fastqc_name(filename):
@@ -41,6 +41,12 @@ def get_fastqc_name(filename):
     filename = filename.replace(".gz", "")
 
     return filename
+
+def get_filtered_string(is_filtered):
+    filtered_str = ""
+    if is_filtered:
+        filtered_str = ".filtered"
+    return filtered_str
 
 def get_fraction_string(fraction=None):
     fraction_str = ""
@@ -243,13 +249,13 @@ def get_orf_type_profile_image(base_path, orf_type, strand, image_type='eps'):
 def get_orf_types_pie_chart(riboseq_base, name, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
         reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
-        image_type='pdf'):
+        is_filtered=False, image_type='pdf'):
     
     subfolder = os.path.join('orf-predictions', 'plots')
     s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
         fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
-        is_grouped=is_grouped, is_chisq=is_chisq)
+        is_grouped=is_grouped, is_chisq=is_chisq, is_filtered=is_filtered)
     s = s + ".orf-types.{}".format(image_type)
     return s
 
@@ -306,7 +312,8 @@ def get_raw_data_fastqc_data(base_path, filename):
 # used
 def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, is_smooth=False, fraction=None, 
-        reweighting_iterations=None, is_chisq=False, is_merged=False, is_grouped=False, note=None):
+        reweighting_iterations=None, is_chisq=False, is_merged=False, is_grouped=False, 
+        is_filtered=False, note=None):
     
     cds_only = get_cds_only_string(is_cds_only)
     unique = get_unique_string(is_unique)
@@ -320,9 +327,10 @@ def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, i
     f = get_fraction_string(fraction)
     r = get_reweighting_iterations_string(reweighting_iterations)
     g = get_grouped_string(is_grouped)
+    fi = get_filtered_string(is_filtered)
     return os.path.join(riboseq_base, sub_folder, 
-        '{}{}{}{}{}{}{}{}{}{}{}{}{}'.format(
-        name, n, transcriptome, m, unique, cds_only, l, o, s, f, r, chisq, g))
+        '{}{}{}{}{}{}{}{}{}{}{}{}{}{}'.format(
+        name, n, transcriptome, m, unique, cds_only, l, o, s, f, r, chisq, g, fi))
 
 
 
@@ -487,36 +495,36 @@ def get_riboseq_peptide_matches(riboseq_base, name, length=None, offset=None, is
 # used
 def get_riboseq_predicted_orfs(riboseq_base, name, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, note=None, is_smooth=False, fraction=None, 
-        reweighting_iterations=None, is_chisq=False):
+        reweighting_iterations=None, is_chisq=False, is_filtered=False):
     
     s = get_riboseq_base(riboseq_base, name, 'orf-predictions', length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
         is_smooth=is_smooth, fraction=fraction, reweighting_iterations=reweighting_iterations, 
-        is_chisq=is_chisq, note=note)
+        is_chisq=is_chisq, is_filtered=is_filtered, note=note)
     s = s + ".predicted-orfs.bed.gz"
     return s
 
 # used
 def get_riboseq_predicted_orfs_dna(riboseq_base, name, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, is_chisq=False, is_smooth=False, fraction=None, 
-        reweighting_iterations=None, note=None):
+        reweighting_iterations=None, is_filtered=False, note=None):
     
     s = get_riboseq_base(riboseq_base, name, 'orf-predictions', length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
         is_smooth=is_smooth, fraction=fraction, reweighting_iterations=reweighting_iterations, 
-        is_chisq=is_chisq, note=note)
+        is_chisq=is_chisq, is_filtered=is_filtered, note=note)
     s = s + ".predicted-orfs.dna.fa"
     return s
 
 # used
 def get_riboseq_predicted_orfs_protein(riboseq_base, name, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, is_chisq=False, is_smooth=False, fraction=None, 
-        reweighting_iterations=None, note=None):
+        reweighting_iterations=None,is_filtered=False, note=None):
     
     s = get_riboseq_base(riboseq_base, name, 'orf-predictions', length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
         is_smooth=is_smooth, fraction=fraction, reweighting_iterations=reweighting_iterations,  
-        is_chisq=is_chisq, note=note)
+        is_chisq=is_chisq, is_filtered=is_filtered, note=note)
     s = s + ".predicted-orfs.protein.fa"
     return s
 
