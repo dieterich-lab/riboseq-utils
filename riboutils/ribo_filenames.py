@@ -360,28 +360,30 @@ def get_riboseq_bam_fastqc_path(riboseq_data):
 
 # used: get_all_read_filtering_counts
 def get_riboseq_bam_fastqc_data(riboseq_data, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, note=None):
+        is_cds_only=False, is_transcriptome=False, note=None, is_chisq=False):
 
     cds_only = get_cds_only_string(is_cds_only)
     unique = get_unique_string(is_unique)
     l = get_length_string(length)
     transcriptome = get_transcriptome_string(is_transcriptome)
     n = get_note_string(note)
-    name = '{}{}{}{}{}{}'.format(name, n, transcriptome, unique, cds_only, l)
+    c = get_chisq_string(is_chisq)
+    name = '{}{}{}{}{}{}{}'.format(name, n, transcriptome, unique, cds_only, l, c)
 
     fastqc_folder = '{}_fastqc'.format(name)
     return os.path.join(riboseq_data, 'without-rrna-mapping', 'fastqc', fastqc_folder, 'fastqc_data.txt')
 
 # not used
 def get_riboseq_bam_fastqc_read_lengths(riboseq_data, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, note=None):
+        is_cds_only=False, is_transcriptome=False, note=None, is_chisq=False):
 
     cds_only = get_cds_only_string(is_cds_only)
     unique = get_unique_string(is_unique)
     l = get_length_string(length)
     transcriptome = get_transcriptome_string(is_transcriptome)
     n = get_note_string(note)
-    name = '{}{}{}{}{}{}'.format(name, n, transcriptome, unique, cds_only, l)
+    c = get_chisq_string(is_chisq)
+    name = '{}{}{}{}{}{}{}'.format(name, n, transcriptome, unique, cds_only, l, c)
 
     fastqc_folder = '{}_fastqc'.format(name)
     return os.path.join(riboseq_data, 'without-rrna-mapping', 'fastqc', fastqc_folder, 
