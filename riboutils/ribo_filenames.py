@@ -201,6 +201,16 @@ def get_metagene_profiles_bayes_factors(riboseq_base, name, length=None, is_uniq
     return s
 
 # used
+def get_default_models_base():
+    import misc.appdirs
+
+    appname = "rpbp"
+    appauthor = "dieterich-lab"
+    models_base = appdirs.user_data_dir(appname, appauthor)
+    models_base = os.path.join(models_base, "rpbp_models")
+    return models_base
+
+
 def get_models(models_base, model_type):
     path_ex = os.path.join(models_base, model_type, '*pkl')
     models = glob.glob(path_ex)
