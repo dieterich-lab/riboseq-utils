@@ -202,7 +202,7 @@ def get_metagene_profiles_bayes_factors(riboseq_base, name, length=None, is_uniq
 
 # used
 def get_default_models_base():
-    import misc.appdirs
+    import misc.appdirs as appdirs
 
     appname = "rpbp"
     appauthor = "dieterich-lab"
