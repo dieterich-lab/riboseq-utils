@@ -19,6 +19,7 @@ setup(name='riboutils',
             'pandas',
             'scipy',
             'tqdm',
+            'appdirs',
             'misc[bio]'
         ],
         extras_require = {
