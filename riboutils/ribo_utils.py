@@ -299,6 +299,7 @@ def smooth_profile(profile, reweighting_iterations=default_reweighting_iteration
     """
     import statsmodels.api as sm
     lowess = sm.nonparametric.lowess
+    import numpy as np
 
 
     smoothed_profile = np.zeros_like(profile)
