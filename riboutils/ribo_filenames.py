@@ -10,9 +10,9 @@ def get_cds_only_string(is_cds_only):
     return cds_only
 
 def get_chisq_string(is_chisq):
-    chisq = ".rpbp"
+    chisq = ""
     if is_chisq:
-        chisq = ".rpchi"
+        chisq = ".chisq"
     return chisq
 
 def get_fastqc_name(filename):
