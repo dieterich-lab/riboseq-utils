@@ -20,6 +20,7 @@ setup(name='riboutils',
             'scipy',
             'tqdm',
             'appdirs',
+            'statsmodels',
             'misc[bio]'
         ],
         extras_require = {

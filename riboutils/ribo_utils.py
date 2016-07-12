@@ -266,20 +266,124 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     return (lengths, offsets)
 
 ###
+#   This function smoothes the profiles, frame-by-frame
+###
+
+default_fraction = 0.2
+default_reweighting_iterations = 0
+
+def smooth_profile(profile, reweighting_iterations=default_reweighting_iterations, 
+        fraction=default_fraction):
+
+    """ This function smoothes the given ORF profile using the frame-specific
+        approach. It assumes the profile is a dense numpy array and that any
+        filtering due to differences of counts in reading frames, lengths, etc.,
+        has already been performed.
+
+        Please see the statsmodels.api.nonparametric.lowess documentation for
+        more information about reweighting_iterations and fraction.
+
+        Args:
+            profile (np.array of numbers): an array containing the observed
+                ORF profile. In principle, this could already be normalized.
+
+            reweighting_iterations (int): the number of reweighting iterations
+
+            fraction (float): the percentage of the signal to use for smooothing
+
+        Returns:
+            np.array: the smoothed profile
+
+        Imports:
+            statsmodels.api.nonparametric.lowess
+    """
+    import statsmodels.api as sm
+    lowess = sm.nonparametric.lowess
+
+
+    smoothed_profile = np.zeros_like(profile)
+
+    # split the signal based on frame
+    x_1 = profile[0::3]
+    x_2 = profile[1::3]
+    x_3 = profile[2::3]
+    exog = np.arange(len(x_1))
+
+    # x_1
+    endog = x_1
+    smoothed_x_1 = lowess(endog, exog, is_sorted=True, return_sorted=False, 
+        it=reweighting_iterations, frac=fraction)
+    
+    # x_2
+    endog = x_2
+    smoothed_x_2 = lowess(endog, exog, is_sorted=True, return_sorted=False, 
+        it=reweighting_iterations, frac=fraction)
+    
+    # x_3
+    endog = x_3
+    smoothed_x_3 = lowess(endog, exog, is_sorted=True, return_sorted=False, 
+        it=reweighting_iterations, frac=fraction)
+    
+    smoothed_profile[0::3] = smoothed_x_1
+    smoothed_profile[1::3] = smoothed_x_2
+    smoothed_profile[2::3] = smoothed_x_3
+
+    return smoothed_profile
+
+
+###
 #
 # This function extracts all ORFs which count as "translated", according to the
 # values in the config file.
 #
 ###
 
-default_min_signal = None
+default_min_profile = None
 default_min_bf_mean = 5
 default_max_bf_var = None
 default_min_bf_likelihood = None
 default_min_length = 0
 default_chisq_alpha = 0.01
 
-def get_predicted_orfs(bf, min_signal=default_min_signal, 
+def get_base_filter(bf, min_profile=default_min_profile, min_length=default_min_length):
+    """ This function extracts the ORFs from the BF dataframe which meet the
+        minimum requirements to be considered for prediction. Namely, these
+        requirements are:
+        
+            * The minimum sum across all reading frames exceeds the specified minimum
+            * The length exceeds the specified minimum length
+            * The number of reads in the first reading frame exceeds the number in
+                either of the other two reading frames (though not necessarily the
+                other two reading frames combined)
+
+        Args:
+            bf (pd.DataFrame): a data frame containing the relevant ORF information
+
+            min_signal (int) : the minimum sum across all reading frames to consider
+                an ORF as translated
+            
+            min_length (int) : the minimum length of ORF to consider
+
+        Returns:
+            boolean mask: a mask of the input data frame indicating all ORFs which
+                meet the filtering criteria
+    """
+    
+    if min_profile is None:
+        m_profile = bf['profile_sum'] > 0
+    else:
+        m_profile = bf['profile_sum'] > min_profile
+
+    m_length = bf['orf_len'] > min_length
+    m_x1_gt_x2 = bf['x_1_sum'] > bf['x_2_sum']
+    m_x1_gt_x3 = bf['x_1_sum'] > bf['x_3_sum']
+
+    m_base = m_profile & m_length & m_x1_gt_x2 & m_x1_gt_x3
+    return m_base
+
+
+
+def get_predicted_orfs(bf, min_signal=default_min_profile, 
                             min_length=default_min_length,
                             min_bf_mean=default_min_bf_mean, 
                             max_bf_var=default_max_bf_var,
@@ -354,16 +458,7 @@ def get_predicted_orfs(bf, min_signal=default_min_signal,
     msg = "Finding all longest ORFs with signal"
     logging.info(msg)
 
-    if min_signal is None:
-        m_profile = bf['profile_sum'] > 0
-    else:
-        m_profile = bf['profile_sum'] > min_signal
-
-    m_length = bf['orf_len'] > min_length
-    m_x1_gt_x2 = bf['x_1_sum'] > bf['x_2_sum']
-    m_x1_gt_x3 = bf['x_1_sum'] > bf['x_3_sum']
-
-    m_base = m_profile & m_length & m_x1_gt_x2 & m_x1_gt_x3
+    m_base = get_base_filter(bf, min_signal, min_length)
 
     longest_orfs = bio.get_longest_features_by_end(bf[m_base])
     
