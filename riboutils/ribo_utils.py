@@ -697,7 +697,7 @@ def get_pvalue(val, kls):
     return p
 
 def get_transcript_pvalues(kl_df, condition_1, condition_2, field, 
-                min_mean=1, num_random_samples=10000, seed=8675309, num_procs=1, num_groups=500):
+                min_mean=1, num_random_samples=10000, seed=8675309, num_cpus=1, num_groups=500):
     
     import numpy as np
     import misc.parallel as parallel
@@ -709,7 +709,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
     random_kls = parallel.apply_parallel_split(
                 kl_df[m_filter],
-                num_procs,
+                num_cpus,
                 get_background_kl_distribution, 
                 condition_1, condition_2, field, samples_per_group, seed,
                 progress_bar=True, num_groups=num_groups)
