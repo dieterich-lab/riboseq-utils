@@ -697,13 +697,27 @@ def get_pvalue(val, kls):
     return p
 
 def get_transcript_pvalues(kl_df, condition_1, condition_2, field, 
-                min_mean=1, num_random_samples=10000, seed=8675309, num_cpus=1, num_groups=500):
+                min_mean=1, max_var=None, var_power=None,
+                num_random_samples=10000, seed=8675309, num_cpus=1, num_groups=500):
     
     import numpy as np
     import misc.parallel as parallel
     import misc.utils as utils
 
-    m_filter = get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=min_mean)
+    m_mean_filter = get_mean_filter(kl_df, condition_1, condition_2, 
+            field, min_mean=min_mean)
+
+    m_var_filter = True
+    if max_var is not None:
+        m_var_filter = get_variance_filter(kl_df, condition_1, condition_2, 
+            field, max_var=max_var)
+    
+    m_var_power_filter = True
+    if var_power is not None:
+        m_var_power_filter = get_variance_power_filter(kl_df, condition_1, condition_2, 
+            field, power=var_power)
+
+    m_filter = m_mean_filter & m_var_filter & m_var_power_filter
 
     samples_per_group = np.ceil(num_random_samples / num_groups)
 
