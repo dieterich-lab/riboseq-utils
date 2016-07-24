@@ -545,11 +545,11 @@ def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5)
         rna_mean_1_f = "rna_abundance_mean_loc_{}".format(condition_1)
         rna_mean_2_f = "rna_abundance_mean_loc_{}".format(condition_2)
 
-        m_ribo_1 = kl_df[ribo_var_1_f] < np.power(kl_df[ribo_mean_1_f], power)
-        m_ribo_2 = kl_df[ribo_var_2_f] < np.power(kl_df[ribo_mean_2_f], power)
+        m_ribo_1 = abs(kl_df[ribo_var_1_f]) < np.power(abs(kl_df[ribo_mean_1_f]), power)
+        m_ribo_2 = abs(kl_df[ribo_var_2_f]) < np.power(abs(kl_df[ribo_mean_2_f]), power)
         
-        m_rna_1 = kl_df[rna_var_1_f] < np.power(kl_df[rna_mean_1_f], power)
-        m_rna_2 = kl_df[rna_var_2_f] < np.power(kl_df[rna_mean_2_f], power)
+        m_rna_1 = abs(kl_df[rna_var_1_f]) < np.power(abs(kl_df[rna_mean_1_f]), power)
+        m_rna_2 = abs(kl_df[rna_var_2_f]) < np.power(abs(kl_df[rna_mean_2_f]), power)
         
         m_filter = (m_ribo_1 & m_ribo_2 & m_rna_1 & m_rna_2)
 
@@ -562,8 +562,8 @@ def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5)
 
 
         # also get the filter
-        m_1 = kl_df[var_1_f] < np.power(kl_df[mean_1_f], power)
-        m_2 = kl_df[var_2_f] < np.power(kl_df[mean_2_f], power)
+        m_1 = abs(kl_df[var_1_f]) < np.power(abs(kl_df[mean_1_f]), power)
+        m_2 = abs(kl_df[var_2_f]) < np.power(abs(kl_df[mean_2_f]), power)
 
         m_filter = (m_1 & m_2)
         
@@ -580,11 +580,11 @@ def get_variance_filter(kl_df, condition_1, condition_2, field, max_var=0.5):
         rna_var_1_f = "rna_abundance_var_loc_{}".format(condition_1)
         rna_var_2_f = "rna_abundance_var_loc_{}".format(condition_2)
 
-        m_ribo_1 = kl_df[ribo_var_1_f] < max_var
-        m_ribo_2 = kl_df[ribo_var_2_f] < max_var
+        m_ribo_1 = abs(kl_df[ribo_var_1_f]) < max_var
+        m_ribo_2 = abs(kl_df[ribo_var_2_f]) < max_var
 
-        m_rna_1 = kl_df[rna_var_1_f] < max_var
-        m_rna_2 = kl_df[rna_var_2_f] < max_var
+        m_rna_1 = abs(kl_df[rna_var_1_f]) < max_var
+        m_rna_2 = abs(kl_df[rna_var_2_f]) < max_var
         
         m_filter = (m_ribo_1 & m_ribo_2 & m_rna_1 & m_rna_2)
 
@@ -593,8 +593,8 @@ def get_variance_filter(kl_df, condition_1, condition_2, field, max_var=0.5):
         var_2_f = "{}_var_loc_{}".format(field, condition_2)
 
         # also get the filter
-        m_1 = kl_df[var_1_f] < max_var
-        m_2 = kl_df[var_2_f] < max_var
+        m_1 = abs(kl_df[var_1_f]) < max_var
+        m_2 = abs(kl_df[var_2_f]) < max_var
 
         m_filter = (m_1 & m_2)
         
@@ -612,11 +612,11 @@ def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
         rna_mean_1_f = "rna_abundance_mean_loc_{}".format(condition_1)
         rna_mean_2_f = "rna_abundance_mean_loc_{}".format(condition_2)
 
-        m_ribo_1 = kl_df[ribo_mean_1_f] > min_mean
-        m_ribo_2 = kl_df[ribo_mean_2_f] > min_mean
+        m_ribo_1 = abs(kl_df[ribo_mean_1_f]) > min_mean
+        m_ribo_2 = abs(kl_df[ribo_mean_2_f]) > min_mean
 
-        m_rna_1 = kl_df[rna_mean_1_f] > min_mean
-        m_rna_2 = kl_df[rna_mean_2_f] > min_mean
+        m_rna_1 = abs(kl_df[rna_mean_1_f]) > min_mean
+        m_rna_2 = abs(kl_df[rna_mean_2_f]) > min_mean
         
         m_filter = (m_ribo_1 & m_ribo_2 & m_rna_1 & m_rna_2)
 
@@ -625,8 +625,8 @@ def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
         mean_2_f = "{}_mean_loc_{}".format(field, condition_2)
 
         # also get the filter
-        m_1 = kl_df[mean_1_f] > min_mean
-        m_2 = kl_df[mean_2_f] > min_mean
+        m_1 = abs(kl_df[mean_1_f]) > min_mean
+        m_2 = abs(kl_df[mean_2_f]) > min_mean
 
         m_filter = (m_1 & m_2)
         
@@ -726,6 +726,60 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
 def get_significant_differences(condition_1, condition_2, pval_df, 
                                 alpha=0.05, min_rpkm_mean=None, max_rpkm_var=None,var_power=None):
+
+    """ This function extracts the transcripts from pval_df which are
+        significantly differentially "expressed" between the two given
+        conditions (see below for the considered types of "expression").
+
+        The function first filters the pval list to ensure the specified
+        thresholds are met (min_rpkm_mean, max_rpkm_var, var_power). It
+        then extracts the transcripts which have the specified significance
+        level (alpha) or better (less) for log_transclational_efficiency,
+        rna_abundance, ribo_abundance. Finally, the function returns each of
+        the filters as boolean arrays.
+
+        This function is meant to be used with the output of the 
+        estimate-kl-pvalues script from the ribo-te package.
+
+        This script uses a permutation test approach; therefore, multiple test
+        correction of the pvalues *is not* required.
+
+        Args:
+            condition_1, condition_2 (strings): the name of the conditions
+
+            pval_df (pd.DataFrame): a dataframe, which is just the output of
+                the estimate-kl-pvalues script
+
+            alpha (float): the significance value for filtering
+
+            min_rpkm_mean, max_rpkm_var, var_power (floats): the values for filtering,
+                or None if the relevant filter should not be applied.
+
+        Returns:
+            All of the return values are boolean masks of pval_df.
+
+            m_te_filter: the transcripts which meet the filters for both RNA-seq
+                and riboseq
+
+            m_rna_filter: the transcripts which meet the filter for RNA-seq (they
+                may or may not meet the riboseq filter)
+
+            m_ribo_filter: the transcripts which meet the filter for riboseq (they
+                may or may not meet the RNA-seq filter)
+
+            m_te_sig: the transcripts which meet m_te_filter and have a significant
+                KL-divergence (according to the pvalues) for log_translational_efficiency
+
+            m_rna_sig: the transcripts which meet m_rna_filter and have a significant
+                KL-divergence (according to the pvalues) for rna_abundance
+
+            m_ribo_sig: the transcripts which meet m_ribo_filter and have a significant
+                KL-divergence (according to the pvalues) for ribo_abundance
+
+        Imports:
+            numpy
+
+    """
     
     te_kl_field = "log_translational_efficiency_{}_{}_kl_divergence".format(condition_1, condition_2)
     
@@ -800,3 +854,51 @@ def get_significant_differences(condition_1, condition_2, pval_df,
     m_ribo_sig = (pval_df[ribo_pval_field] < alpha) & m_ribo_filter
     
     return (m_te_filter, m_rna_filter, m_ribo_filter, m_te_sig, m_rna_sig, m_ribo_sig)
+
+def get_up_and_down_masks(condition_1, condition_2, pval_df):
+    """ This function finds all of the transcripts which are, respectively
+        higher or lower in the first condition. That is, "up" and "down"
+        are respective to condition_1.
+
+        This function is meant to be used with the output of the 
+        estimate-kl-pvalues script from the ribo-te package.
+
+        Args:
+            condition_1, condition_2 (strings): the name of the conditions
+
+            pval_df (pd.DataFrame): a dataframe, which is just the output of
+                the estimate-kl-pvalues script
+                        
+        Returns:
+            All of the return values are boolean masks of pval_df.
+
+            m_te_up, m_te_down: The transcripts which have higher or lower TE
+                in the first condition, respectively.
+
+            m_rna_up, m_rna_down: The transcripts which have higher or lower
+                RNA-seq RPKM in the first condition, respectively.
+
+            m_ribo_up, m_ribo_down: The transcripts which have higher or lower
+                riboseq RPKM in the first condition, respectively.
+
+    """
+    te_1 = 'log_translational_efficiency_loc_{}'.format(condition_1)
+    te_2 = 'log_translational_efficiency_loc_{}'.format(condition_2)
+    
+    rna_1 = 'rna_abundance_mean_loc_{}'.format(condition_1)
+    rna_2 = 'rna_abundance_mean_loc_{}'.format(condition_2)    
+    
+    ribo_1 = 'ribo_abundance_mean_loc_{}'.format(condition_1)
+    ribo_2 = 'ribo_abundance_mean_loc_{}'.format(condition_2)
+    
+    m_te_up = pval_df[te_1] > pval_df[te_2]
+    m_te_down = ~m_te_up
+    
+    m_rna_up = pval_df[rna_1] > pval_df[rna_2]
+    m_rna_down = ~m_rna_up
+    
+    m_ribo_up = pval_df[ribo_1] > pval_df[ribo_2]
+    m_ribo_down = ~m_ribo_up
+    
+    return m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
+
