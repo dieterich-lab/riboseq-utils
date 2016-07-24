@@ -756,7 +756,7 @@ def get_rpkm_vs_rpkm_image_file(base_path, condition_1, condition_2,
 
     m = get_merged_string(is_merged)
     n = get_note_string(note)
-    fn = '{}{}-{}{}.{}-rpkm-vs-rpkm.{}'.format(condition_1, m, condition_2, m, n, field, image_type)
+    fn = '{}{}-{}{}{}.{}-rpkm-vs-rpkm.{}'.format(condition_1, m, condition_2, m, n, field, image_type)
     return os.path.join(base_path, 'plots', 'rpkm-vs-rpkm', fn)
 
 ### s
