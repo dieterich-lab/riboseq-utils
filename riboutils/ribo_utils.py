@@ -4,6 +4,8 @@ import pandas as pd
 
 import riboutils.ribo_filenames as filenames
 
+logger = logging.getLogger(__name__)
+
 ###
 #   The following labels are used to group similar ORF types.
 ###
@@ -33,12 +35,12 @@ def get_riboseq_replicates(config):
     if 'riboseq_biological_replicates' in config:
         if config['riboseq_biological_replicates'] is not None:
             msg = "Found 'riboseq_biological_replicates' key in config file"
-            logging.info(msg)
+            logger.info(msg)
             return config['riboseq_biological_replicates']
         
     msg = ("Did not find 'riboseq_biological_replicates' key in config file. "
             "Using each 'riboseq_sample' as a single-condition replicate.")
-    logging.info(msg)
+    logger.info(msg)
 
     # create a dictionary mapping from the sample name to asingle-element list
     ret = {
@@ -50,13 +52,13 @@ def get_rnaseq_replicates(config):
     if 'rnaseq_biological_replicates' in config:
         if config['rnaseq_biological_replicates'] is not None:
             msg = "Found 'rnaseq_biological_replicates' key in config file"
-            logging.info(msg)
+            logger.info(msg)
 
             return config['rnaseq_biological_replicates']
         
     msg = ("Did not find 'rnaseq_biological_replicates' key in config file. "
             "Using each 'rnaseq_sample' as a single-condition replicate.")
-    logging.info(msg)
+    logger.info(msg)
     
     # create a dictionary mapping from the sample name to asingle-element list
     ret = {
@@ -68,14 +70,14 @@ def get_matching_conditions(config):
     if 'matching_conditions' in config:
         if config['matching_conditions'] is not None:
             msg = "Found 'matching_conditions' key in config file"
-            logging.info(msg)
+            logger.info(msg)
 
             return config['matching_conditions']
         
     msg = ("Did not find 'matching_conditions' key in config file. Using "
             "riboseq and rnaseq conditions (biological_replicate entries) "
             "as matching conditions.")
-    logging.info(msg)
+    logger.info(msg)
     
     # otherwise, get the replicates and match key names
     riboseq_replicates = get_riboseq_replicates(config)
@@ -196,7 +198,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
             msg = msg +  ("\nThe --do-not-call flag was given, so \"dummy\" default lengths will be "
                 "used to check the remaining calls.\n")
 
-            logging.warning(msg)
+            logger.warning(msg)
 
             offsets = ["12"]
             lengths = ["29"]
@@ -221,7 +223,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
 
         msg = ("Using the mean and variance filter. min_mean: {}, max_var: {}"
             .format(min_bf_mean, max_bf_var))
-        logging.debug(msg)
+        logger.debug(msg)
 
     if min_bf_likelihood is not None:
         # first, calculate the likelihood that the true BF is greater than m_bf_mean
@@ -238,15 +240,15 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
         num_predictions = len(likelihood)
 
         msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
-        logging.debug(msg)
+        logger.debug(msg)
 
         msg = ("Using the likelihood filter. min_mean: {}, min_likelihood: {}"
             .format(min_bf_mean, min_bf_likelihood))
-        logging.debug(msg)
+        logger.debug(msg)
 
         max_likelihood = max(likelihood[~nans])
         msg = "Maximum likelihood: {}".format(max_likelihood)
-        logging.debug(msg)
+        logger.debug(msg)
 
         # now filter
         m_bf_likelihood = likelihood > min_bf_likelihood
@@ -382,6 +384,86 @@ def get_base_filter(bf, min_profile=default_min_profile, min_length=default_min_
     m_base = m_profile & m_length & m_x1_gt_x2 & m_x1_gt_x3
     return m_base
 
+def get_bf_filter(bf, min_bf_mean=default_min_bf_mean, 
+                    max_bf_var=default_max_bf_var,
+                    min_bf_likelihood=default_min_bf_likelihood):
+
+    """ This function applies filters to the Bayes factor estimates to find all
+        ORFs which should be predicted as translated. This does not consider the
+        length and profile sums, so this filter would need to be combined with
+        the get_base_filter filter to find the true set of predicted ORFs.
+
+        Args:
+            bf (pd.DataFrame) : a data frame containing the relevant ORF information
+
+            min_bf_mean (float) : if max_bf_var is not None, then this is taken
+                as a hard threshold on the estimated Bayes factor mean. If
+                min_bf_likelihood is given, then this is taken as the boundary
+                value; that is, an ORF is "translated" if:
+
+                    [P(bf > min_bf_mean)] > min_bf_likelihood
+
+                If both max_bf_var and min_bf_likelihood are None, then this is
+                taken as a hard threshold on the mean for selecting translated ORFs.
+
+                If both max_bf_var and min_bf_likelihood are given, then both
+                filters will be applied and the result will be the intersection.
+
+            max_bf_var (float) : if given, then this is taken as a hard threshold
+                on the estimated Bayes factor variance
+            
+            min_bf_likelihood (float) : if given, then this is taken a threshold
+                on the likelihood of translation (see min_bf_mean description
+                for more details)
+        
+        Returns:
+            boolean mask: a mask of the input data frame indicating all ORFs which
+                meet the filtering criteria
+
+        Imports:
+            numpy
+            scipy.stats
+    """
+    import numpy as np
+    import scipy.stats
+
+    # which bf mean/variance filters do we use? 
+    m_bf_mean = True
+    m_bf_var = True
+    m_bf_likelihood = True
+
+    if max_bf_var is not None:
+        m_bf_mean = bf['bayes_factor_mean'] > min_bf_mean
+        m_bf_var = bf['bayes_factor_var'] < max_bf_var
+    if min_bf_likelihood is not None:
+        # first, calculate the likelihood that the true BF is greater than m_bf_mean
+
+        # the likelihood that BF>min_mean is 1-cdf(estimated_mean, estimated_var)
+
+        # scipy parameterizes the normal using the std, so use sqrt(var)
+
+        likelihood = 1-scipy.stats.norm.cdf(min_bf_mean, bf['bayes_factor_mean'], np.sqrt(bf['bayes_factor_var']))
+
+        nans = np.isnan(likelihood)
+        num_nans = sum(nans)
+        num_predictions = len(likelihood)
+
+        msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
+        logger.debug(msg)
+
+        if num_nans != num_predictions:
+            max_likelihood = max(likelihood[~nans])
+            msg = "Maximum likelihood: {}".format(max_likelihood)
+            logger.debug(msg)
+
+        # now filter
+        m_bf_likelihood = likelihood > min_bf_likelihood
+
+    if (max_bf_var is None) and (min_bf_likelihood is None):
+        m_bf_mean = bf['bayes_factor_mean'] > min_bf_mean
+
+    return m_bf_mean & m_bf_var & m_bf_likelihood
+
 
 
 def get_predicted_orfs(bf, min_signal=default_min_profile, 
@@ -451,57 +533,22 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
             scipy.stats
 
     """
-
     import misc.bio as bio
     import numpy as np
     import scipy.stats
 
     msg = "Finding all longest ORFs with signal"
-    logging.info(msg)
+    logger.info(msg)
 
     m_base = get_base_filter(bf, min_signal, min_length)
 
     longest_orfs = bio.get_longest_features_by_end(bf[m_base])
     
     # create the selected ORFs
-
-    # which bf mean/variance filters do we use? 
-    m_bf_mean = True
-    m_bf_var = True
-    m_bf_likelihood = True
-
-    if max_bf_var is not None:
-        m_bf_mean = bf['bayes_factor_mean'] > min_bf_mean
-        m_bf_var = bf['bayes_factor_var'] < max_bf_var
-    if min_bf_likelihood is not None:
-        # first, calculate the likelihood that the true BF is greater than m_bf_mean
-
-        # the likelihood that BF>min_mean is 1-cdf(estimated_mean, estimated_var)
-
-        # scipy parameterizes the normal using the std, so use sqrt(var)
-
-        likelihood = 1-scipy.stats.norm.cdf(min_bf_mean, bf['bayes_factor_mean'], np.sqrt(bf['bayes_factor_var']))
-
-        nans = np.isnan(likelihood)
-        num_nans = sum(nans)
-        num_predictions = len(likelihood)
-
-        msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
-        logging.debug(msg)
-
-        if num_nans != num_predictions:
-            max_likelihood = max(likelihood[~nans])
-            msg = "Maximum likelihood: {}".format(max_likelihood)
-            logging.debug(msg)
-
-        # now filter
-        m_bf_likelihood = likelihood > min_bf_likelihood
-
-    if (max_bf_var is None) and (min_bf_likelihood is None):
-        m_bf_mean = bf['bayes_factor_mean'] > min_bf_mean
+    m_bf =  get_bf_filter(bf, min_bf_mean, max_bf_var, min_bf_likelihood)
 
     # apply all the filters
-    m_bf_predicted = m_base & m_bf_mean & m_bf_var & m_bf_likelihood
+    m_bf_predicted = m_base & m_bf
 
     bf_longest_predicted_orfs = bio.get_longest_features_by_end(bf[m_bf_predicted])
 
@@ -511,7 +558,7 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
     corrected_significance_level = chisq_alpha / M
 
     msg = "Corrected significance level: {}".format(corrected_significance_level)
-    logging.debug(msg)
+    logger.debug(msg)
     
     m_chisq_pval = bf['chi_square_p'] < corrected_significance_level
     m_chisq_predicted = m_base & m_chisq_pval
@@ -916,3 +963,123 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
     
     return m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
 
+###
+#   These functions are used for estimating significance (p-values) of the overlap
+#   with Mackowiak ORFs via a permutation test.
+#   
+###
+
+def get_random_mackowiak_exact_matches(bf_filtered, num_random_choices, 
+                                       sorfs_bed, seqname_prefix=""):
+    """ This function performs one step of a permutation test for determining
+        p-values for the overlap of Mackowiak ORFs. In particular, given a list
+        of ORFs and a number of random ORFs to choose, this function selects 
+        that many ORFs. It then joins them to find the "longest"
+        predicted ORFs. Finally, it intersects that list with the Mackowiak ORFs.
+        The function returns the number of exact matches between the randomly
+        drawn ORFs and the Mackowiak ORFs.
+        
+        Args:
+            bf (pd.DataFrame): a data frame of ORFs (i.e., the output of 
+                estimate-orf-bayes-factors). This should already include
+                basic filtering (length, etc.)
+                
+            num_random_choices (int): the number of random ORFs to choose (this
+                should be the same as the number of ORFs predicted as translated
+                before merging into the "longest" ORFs)
+                
+            sorfs_bed (pybedtools.BedTool): the Mackowiak ORFs
+            
+            seqname_prefix (string): a string to prepend to the seqnames from bf
+                before using bedtools
+            
+        Returns:
+            int: the number of exact matches between the randomly chosen ORFs
+                and the Mackowiak ORFs
+                
+        Imports:
+            numpy
+            misc.bio
+            pybedtools
+    """
+    import numpy as np
+    import misc.bio as bio
+    import pybedtools
+    
+    # randomly choose some of the ORFs which passed the base filter
+    random_choices = np.random.choice(len(bf_filtered), num_random_choices, replace=False)
+    
+    # convert the indices back into a mask we can use
+    m_random = np.zeros(len(bf_filtered), dtype=bool)
+    m_random[random_choices] = True
+    
+    # merge the selected ORFs
+    random_orfs = bio.get_longest_features_by_end(bf_filtered[m_random])
+    
+    # convert that to a bed file
+    if len(seqname_prefix) > 0:
+        random_orfs['seqname'] = seqname_prefix + random_orfs['seqname']
+        
+    random_bed = pybedtools.BedTool.from_dataframe(random_orfs[bio.bed12_field_names])
+    
+    # now, take the intersection with the Mackowiak ORFs
+    i_random_sorfs = random_bed.intersect(sorfs_bed, split=True, s=True, wo=True, f=1.0, F=1.0)
+    
+    # and return the number of exact matches
+    num_exact_matches = len(i_random_sorfs)
+    return num_exact_matches
+
+
+def get_mackowiak_background(batch, num_random_samples, 
+                             bf_filtered, num_random_choices, 
+                             sorfs_file, seqname_prefix="",
+                            progress_bar=False):
+
+    """ This function draws the specified number of random samples for a 
+        permutation test using get_random_mackowiak_exact_matches. It is mostly
+        just a wrapper around that function that is convenient for parallel
+        calls.
+
+        Args:
+            batch (int): the index of this set of samples
+
+            num_random_samples (int): the number of random samples to draw
+
+            progress_bar (bool): whether to show a progress bar
+
+            the rest are the same as for get_random_mackowiak_exact_matches
+
+        Returns:
+            np.array of ints: the number of exact matches from each random
+                sample
+
+        Imports:
+            misc.bio
+            numpy
+            pybedtools
+            tqdm (if a progress bar is used)
+            sys (if a progress bar is used)
+    """
+    import sys
+    import numpy as np
+    import tqdm
+    import pybedtools
+    import misc.bio as bio
+    
+    sorfs = bio.read_bed(sorfs_file)
+    sorfs_bed = pybedtools.BedTool.from_dataframe(sorfs[bio.bed12_field_names])
+    
+    ret = np.zeros(num_random_samples, dtype=int)
+    
+    it = range(num_random_samples)
+    if progress_bar:
+        import sys
+        import tqdm
+        it = tqdm.tqdm(it, leave=True, file=sys.stdout, total=num_random_samples)
+    
+    for i in it:
+        num_exact_matches = get_random_mackowiak_exact_matches(bf_filtered, num_random_choices, 
+                                                               sorfs_bed, seqname_prefix=seqname_prefix)
+        ret[i] = num_exact_matches
+        
+    return ret
