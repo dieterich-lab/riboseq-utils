@@ -89,6 +89,42 @@ def get_matching_conditions(config):
     
     return matching_conditions
 
+def get_riboseq_cell_type_samples(config):
+    if 'riboseq_cell_type_samples' in config:
+        if config['riboseq_cell_type_samples'] is not None:
+            msg = "Found 'riboseq_cell_type_samples' key in config file"
+            logger.info(msg)
+            return config['riboseq_cell_type_samples']
+
+    msg = ("Did not find 'riboseq_cell_type_samples' key in config file. Using "
+            "riboseq conditions (biological_replicate entries) as the cell types")
+    logger.info(msg)
+
+    riboseq_replicates = get_riboseq_replicates(config)
+    cell_type_samples = {
+        x: [x] for x in riboseq_replicates
+    }
+    return cell_type_samples
+
+
+def get_rnaseq_cell_type_samples(config):
+    if 'rnaseq_cell_type_samples' in config:
+        if config['rnaseq_cell_type_samples'] is not None:
+            msg = "Found 'rnaseq_cell_type_samples' key in config file"
+            logger.info(msg)
+            return config['rnaseq_cell_type_samples']
+
+    msg = ("Did not find 'rnaseq_cell_type_samples' key in config file. Using "
+            "riboseq conditions (biological_replicate entries) as the cell types")
+    logger.info(msg)
+
+    rnaseq_replicates = get_rnaseq_replicates(config)
+    cell_type_samples = {
+        x: [x] for x in rnaseq_replicates
+    }
+    return cell_type_samples
+
+
 ###
 #
 # This function is used to extract the lengths and offsets which count as
@@ -266,6 +302,129 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     lengths = [str(int(l)) for l in lengths]
 
     return (lengths, offsets)
+
+###
+#   This function extracts the p-sites from alignments, given the offsets
+#   and periodic read lengths.
+###
+def get_p_sites(bam_file, periodic_lengths, offsets):
+    """ Given a bam file of mapped riboseq reads, this function filters
+        out the reads of non-periodic length, adjusts the start and end
+        positions based on strand, and then shifts the remaining reads
+        based on the length-specific offset.
+        
+        Args:
+            bam_file (string) : the path to the mapped riboseq reads
+            
+            periodic_lengths (list-like) : a list of lengths to keep
+            
+            offsets (list-like) : the distance to shift each read of the
+                respective length. the order here must match that in
+                periodic_lengths
+                
+        Returns:
+            pd.DataFrame : a data frame containing the transformed reads,
+                sorted by chrom and start
+
+        Imports:
+            sys
+            numpy
+            pandas
+            tqdm
+            pysam
+            misc.bio
+    """
+    import sys
+    import numpy as np
+    import pandas as pd
+    import tqdm
+
+    import pysam
+    import misc.bio as bio
+
+    msg = "Reading BAM file"
+    logger.info(msg)
+
+    bam = pysam.AlignmentFile(bam_file)
+    alignments = bam.fetch()
+    num_alignments = bam.count()
+
+    logger.info("Processing alignments")
+
+    lengths = np.zeros(num_alignments, dtype=int)
+    starts = np.zeros(num_alignments, dtype=int)
+    ends = np.zeros(num_alignments, dtype=int)
+    seqs = [""] * num_alignments
+    strands = ["+"] * num_alignments
+
+    for i, a in enumerate(tqdm.tqdm(alignments, leave=True, file=sys.stdout, total=num_alignments)):
+        starts[i] = a.reference_start
+        ends[i] = a.reference_end
+        lengths[i] = a.qlen
+        seqs[i] = a.reference_name
+
+        if a.is_reverse:
+            strands[i] = "-"
+
+    # The data frame will later be converted to BED6, so put the fields in the
+    # correct order.
+    map_df = pd.DataFrame()
+    map_df['seqname'] = seqs
+    map_df['start'] = starts
+    map_df['end'] = ends
+    map_df['id'] = "."
+    map_df['score'] = "."
+    map_df['strand'] = strands
+    map_df['length'] = lengths
+
+    msg = "Filtering reads by length"
+    logger.info(msg)
+    
+    # now, filter based on lengths
+    m_length = map_df['length'].isin(periodic_lengths)
+    map_df = map_df[m_length]
+
+    # now, we need to update the starts and ends based on the strand
+    msg = "Updating coordinates based on offsets"
+    logger.info(msg)
+
+    # if the strand is positive, the end is start+1
+    # if the strand is negative, the start is end-1
+    m_positive = map_df['strand'] == '+'
+    m_negative = map_df['strand'] == '-'
+    
+    # first, shift in the appropriate direction
+    for i in range(len(periodic_lengths)):
+        length = periodic_lengths[i]
+        offset = offsets[i]
+        
+        m_length = map_df['length'] == length
+        
+        # adjust the start of forward strand
+        map_df.loc[m_positive & m_length, 'start'] = (
+                map_df.loc[m_positive & m_length, 'start'] + offset)
+        
+        # adjust the ends of negative strand
+        map_df.loc[m_negative & m_length, 'end'] = (
+                map_df.loc[m_negative & m_length, 'end'] - offset)
+
+    # finally, we only care about the 5' end of the read, so discard everything else
+    msg = "Discarding 3' end of reads"
+    logger.info(msg)
+    
+    map_df.loc[m_positive, 'end'] = map_df.loc[m_positive, 'start'] + 1
+    map_df.loc[m_negative, 'start'] = map_df.loc[m_negative, 'end'] - 1
+
+    # now sort everything
+    msg = "Sorting reads by coordinates"
+    logger.info(msg)
+    
+    map_df = map_df.sort_values(['seqname', 'start'])
+
+    # and we only want the BED6 fields
+    map_df = map_df[bio.bed6_field_names]
+    
+    return map_df
 
 ###
 #   This function smoothes the profiles, frame-by-frame
