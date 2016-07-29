@@ -679,29 +679,97 @@ def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
         
     return m_filter
 
-def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f):
+def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, strategy='sampling'):
     import numpy as np
+    import scipy.stats
     import misc.math_utils as math_utils
 
-    x = np.random.randint(len(kl_df))
-    row = kl_df.iloc[x]
+    if strategy == 'filtering':
+        m_filter = [False] * len(kl_df)
+
+        while sum(m_filter) == 0:
+            x = np.random.randint(len(kl_df))
+            row = kl_df.iloc[x]
+        
+            mean_1 = row[mean_1_f]
+            scale_1 = row[scale_1_f]
+            p = (mean_1, scale_1)
+        
+            mean_2 = row[mean_2_f]
+            scale_2 = row[scale_2_f]
+
+            m_min_scale = kl_df[scale_2_f] > 0.5*scale_2
+            m_max_scale = kl_df[scale_2_f] < 2*scale_2
+            m_scale = m_min_scale & m_max_scale
+
+            m_min_mean = kl_df[mean_2_f] > 0.5*mean_2
+            m_max_mean = kl_df[mean_2_f] < 2*mean_2
+            m_mean = m_min_mean & m_max_mean
+
+            m_filter = m_mean & m_scale
+
+        indices = np.where(m_filter)[0]
+        y = np.random.choice(indices)
+        
+        #y = np.random.randint(len(kl_df))
+        row = kl_df.iloc[y]
+        
+        mean_2 = row[mean_2_f]
+        scale_2 = row[scale_2_f]
+        q = (mean_2, scale_2)
+
+    elif strategy == 'sampling':
+        x = np.random.randint(len(kl_df))
+        row = kl_df.iloc[x]
+
+        mean_1 = row[mean_1_f]
+        scale_1 = row[scale_1_f]
+        p = (mean_1, scale_1)
     
-    mean_1 = row[mean_1_f]
-    scale_1 = row[scale_1_f]
-    p = (mean_1, scale_1)
-    
-    y = np.random.randint(len(kl_df))
-    row = kl_df.iloc[y]
-    
-    mean_2 = row[mean_2_f]
-    scale_2 = row[scale_2_f]
-    q = (mean_2, scale_2)
+        mean_2 = row[mean_2_f]
+        scale_2 = row[scale_2_f]
+
+        means = kl_df[mean_2_f]
+
+        # we take the sqrt because scipy uses std, but we use var
+        unnormalized_likelihoods = scipy.stats.norm.pdf(means, loc=mean_1, scale=np.sqrt(scale_1))
+        normalized_likelihoods = unnormalized_likelihoods / np.sum(unnormalized_likelihoods)
+        y = np.random.choice(len(normalized_likelihoods), p=normalized_likelihoods)
+        
+        row = kl_df.iloc[y]
+        
+        mean_2 = row[mean_2_f]
+        scale_2 = row[scale_2_f]
+        q = (mean_2, scale_2)
+
+    elif strategy == "random":
+        x = np.random.randint(len(kl_df))
+        row = kl_df.iloc[x]
+
+        mean_1 = row[mean_1_f]
+        scale_1 = row[scale_1_f]
+        p = (mean_1, scale_1)
+        
+        y = np.random.randint(len(kl_df))
+        row = kl_df.iloc[y]
+        
+        mean_2 = row[mean_2_f]
+        scale_2 = row[scale_2_f]
+        q = (mean_2, scale_2)
+
+    else:
+        msg = "Unrecognized permutation test strategy: {}".format(strategy)
+        raise ValueError(msg)
+
+
+
+
 
     kl = math_utils.calculate_symmetric_kl_divergence(p, q, math_utils.calculate_univariate_gaussian_kl)
 
-    return kl
+    return kl, p, q
 
-def get_background_kl_distribution(filtered_kl_df, condition_1, condition_2, field,
+def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition_2, field,
                                    num_random_samples=10000, seed=8675309, use_progress_bar=False):
     
     import numpy as np
@@ -709,6 +777,8 @@ def get_background_kl_distribution(filtered_kl_df, condition_1, condition_2, fie
 
     np.random.seed(seed)
     random_kls = []
+    random_ps = []
+    random_qs = []
         
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -731,10 +801,12 @@ def get_background_kl_distribution(filtered_kl_df, condition_1, condition_2, fie
         iter_range = np.arange(num_random_samples)
 
     for i in iter_range:
-        kl = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
+        kl, p, q = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
         random_kls.append(kl)
+        random_ps.append(p)
+        random_qs.append(q)
         
-    return random_kls
+    return random_kls, random_ps, random_qs
 
 def get_pvalue(val, kls):
     import numpy as np
@@ -766,16 +838,39 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
     m_filter = m_mean_filter & m_var_filter & m_var_power_filter
 
+    msg = "Total transcripts: {}. Use for sampling: {}".format(len(kl_df), sum(m_filter))
+    logger.debug(msg)
+
     samples_per_group = np.ceil(num_random_samples / num_groups)
 
-    random_kls = parallel.apply_parallel_split(
-                kl_df[m_filter],
+    it = np.arange(num_cpus)
+    random_kls = parallel.apply_parallel_iter(
+                it,
                 num_cpus,
                 get_background_kl_distribution, 
+                kl_df[m_filter],
                 condition_1, condition_2, field, samples_per_group, seed,
                 progress_bar=True, num_groups=num_groups)
-    
-    random_kls = utils.flatten_lists(random_kls)
+   
+    print(len(random_kls))
+    random_ks = utils.flatten_lists(random_kls)
+    print(len(random_ks))
+    #random_ks = np.array(random_kls, dtype=object)
+    #print(random_ks.shape)
+    random_kls = random_ks[0::3]
+    random_ps = random_ks[1::3]
+    random_qs = random_ks[2::3]
+
+    random_kls = np.concatenate(random_kls)
+    random_ps = np.concatenate(random_ps)
+    random_qs = np.concatenate(random_qs)
+
+    print(random_kls.shape)
+    print(random_qs.shape)
+    print(random_ps.shape)
+    #print(random_kls)
+    #print(random_ps)
+    #print(random_qs)
     kls = np.array(sorted(random_kls))
 
     kl_field_name = "{}_{}_{}_kl_divergence".format(field, condition_1, condition_2)
@@ -783,7 +878,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
     pvals = kl_field.apply(get_pvalue, args=(kls,))
     
-    return m_filter, pvals
+    return m_filter, pvals, random_kls, random_ps.tolist(), random_qs.tolist()
 
 def get_significant_differences(condition_1, condition_2, pval_df, 
                                 alpha=0.05, min_rpkm_mean=None, max_rpkm_var=None,var_power=None):
