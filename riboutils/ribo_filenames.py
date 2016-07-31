@@ -162,6 +162,13 @@ def get_diff_reg_image_file(base_path, condition_1, condition_2,
     fn = '{}{}-{}{}{}.diff-reg.{}'.format(condition_1, m, condition_2, m, n, image_type)
     return os.path.join(base_path, 'plots', 'diff-reg', fn)
 
+### e
+# used
+def get_exons(base_path, name, note=None):
+    note_str = get_note_string(note)
+    fn = '{}.orfs-exons{}.bed.gz'.format(name, note_str)
+    return os.path.join(base_path, 'transcript-index', fn)
+ 
 
 ### g
 
