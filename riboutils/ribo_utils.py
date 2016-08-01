@@ -891,7 +891,10 @@ def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, st
         means = kl_df[mean_2_f]
 
         # we take the sqrt because scipy uses std, but we use var
-        unnormalized_likelihoods = scipy.stats.norm.pdf(means, loc=mean_1, scale=np.sqrt(scale_1))
+        #unnormalized_likelihoods = scipy.stats.norm.pdf(means, loc=mean_1, scale=np.sqrt(scale_1))
+        #unnormalized_likelihoods = scipy.stats.cauchy.pdf(means, loc=mean_1, scale=np.sqrt(scale_1))
+        df = 1.5
+        unnormalized_likelihoods = scipy.stats.t.pdf(means, df, loc=mean_1, scale=np.sqrt(scale_1))
         normalized_likelihoods = unnormalized_likelihoods / np.sum(unnormalized_likelihoods)
         y = np.random.choice(len(normalized_likelihoods), p=normalized_likelihoods)
         
@@ -934,7 +937,9 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
     import numpy as np
     import tqdm
 
-    np.random.seed(seed)
+    if seed is not None:
+        np.random.seed(seed)
+
     random_kls = []
     random_ps = []
     random_qs = []
@@ -982,6 +987,8 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
     import misc.parallel as parallel
     import misc.utils as utils
 
+    np.random.seed(seed)
+
     m_mean_filter = get_mean_filter(kl_df, condition_1, condition_2, 
             field, min_mean=min_mean)
 
@@ -1002,13 +1009,16 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
     samples_per_group = np.ceil(num_random_samples / num_groups)
 
+    # We do not need to use a seed for each group; otherwise, they all end up sampling
+    # exactly the same thing.
+    group_seed = None
     it = np.arange(num_cpus)
     random_kls = parallel.apply_parallel_iter(
                 it,
                 num_cpus,
                 get_background_kl_distribution, 
                 kl_df[m_filter],
-                condition_1, condition_2, field, samples_per_group, seed,
+                condition_1, condition_2, field, samples_per_group, group_seed,
                 progress_bar=True, num_groups=num_groups)
    
     print(len(random_kls))
