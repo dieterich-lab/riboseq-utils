@@ -893,7 +893,9 @@ def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, st
         # we take the sqrt because scipy uses std, but we use var
         #unnormalized_likelihoods = scipy.stats.norm.pdf(means, loc=mean_1, scale=np.sqrt(scale_1))
         #unnormalized_likelihoods = scipy.stats.cauchy.pdf(means, loc=mean_1, scale=np.sqrt(scale_1))
-        df = 1.5
+
+        # df=1 is the same as a cauchy
+        df = 1
         unnormalized_likelihoods = scipy.stats.t.pdf(means, df, loc=mean_1, scale=np.sqrt(scale_1))
         normalized_likelihoods = unnormalized_likelihoods / np.sum(unnormalized_likelihoods)
         y = np.random.choice(len(normalized_likelihoods), p=normalized_likelihoods)
