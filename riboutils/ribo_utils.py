@@ -1223,8 +1223,7 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
 #   
 ###
 
-def get_random_mackowiak_exact_matches(bf_filtered, num_random_choices, 
-                                       sorfs_bed, seqname_prefix=""):
+def get_random_mackowiak_exact_matches(bf_filtered, bf_exons, num_random_choices, sorfs_exons):
     """ This function performs one step of a permutation test for determining
         p-values for the overlap of Mackowiak ORFs. In particular, given a list
         of ORFs and a number of random ORFs to choose, this function selects 
@@ -1234,7 +1233,7 @@ def get_random_mackowiak_exact_matches(bf_filtered, num_random_choices,
         drawn ORFs and the Mackowiak ORFs.
         
         Args:
-            bf (pd.DataFrame): a data frame of ORFs (i.e., the output of 
+            bf_filtered (pd.DataFrame): a data frame of ORFs (i.e., the output of 
                 estimate-orf-bayes-factors). This should already include
                 basic filtering (length, etc.)
                 
@@ -1242,23 +1241,22 @@ def get_random_mackowiak_exact_matches(bf_filtered, num_random_choices,
                 should be the same as the number of ORFs predicted as translated
                 before merging into the "longest" ORFs)
                 
-            sorfs_bed (pybedtools.BedTool): the Mackowiak ORFs
-            
-            seqname_prefix (string): a string to prepend to the seqnames from bf
-                before using bedtools
-            
+            sorfs_exons (pd.DataFrame): the split exons of the Mackowiak ORFs
+                        
         Returns:
             int: the number of exact matches between the randomly chosen ORFs
                 and the Mackowiak ORFs
                 
         Imports:
             numpy
-            misc.bio
-            pybedtools
+            misc.bio_utils.bed_utils
+            time
     """
+    import time
     import numpy as np
-    import misc.bio as bio
-    import pybedtools
+    import misc.bio_utils.bed_utils as bed_utils
+
+    start = time.perf_counter()
     
     # randomly choose some of the ORFs which passed the base filter
     random_choices = np.random.choice(len(bf_filtered), num_random_choices, replace=False)
@@ -1266,18 +1264,32 @@ def get_random_mackowiak_exact_matches(bf_filtered, num_random_choices,
     # convert the indices back into a mask we can use
     m_random = np.zeros(len(bf_filtered), dtype=bool)
     m_random[random_choices] = True
+
+    t = time.perf_counter() - start
+    msg = "Time for sampling: {}".format(t)
+    logger.debug(msg)
     
     # merge the selected ORFs
-    random_orfs = bio.get_longest_features_by_end(bf_filtered[m_random])
-    
-    # convert that to a bed file
-    if len(seqname_prefix) > 0:
-        random_orfs['seqname'] = seqname_prefix + random_orfs['seqname']
-        
-    random_bed = pybedtools.BedTool.from_dataframe(random_orfs[bio.bed12_field_names])
-    
+    random_orfs = bed_utils.get_longest_features_by_end(bf_filtered[m_random])
+
+    t = time.perf_counter() - start
+    msg = "Time for finding longest ORFs: {}".format(t)
+    logger.debug(msg)
+
+    #random_orfs_exons = bed_utils.split_bed12(random_orfs)
+    random_orfs_fields = ['id']
+    random_orfs_exons = random_orfs[random_orfs_fields].merge(bf_exons, on='id')
+
+    t = time.perf_counter() - start
+    msg = "Time for splitting ORFs: {}".format(t)
+    logger.debug(msg)
+
     # now, take the intersection with the Mackowiak ORFs
-    i_random_sorfs = random_bed.intersect(sorfs_bed, split=True, s=True, wo=True, f=1.0, F=1.0)
+    i_random_sorfs = bed_utils.get_all_exact_bed_matches(random_orfs_exons, sorfs_exons)
+
+    t = time.perf_counter() - start
+    msg = "Time for finding exact matches: {}".format(t)
+    logger.debug(msg)
     
     # and return the number of exact matches
     num_exact_matches = len(i_random_sorfs)
@@ -1285,9 +1297,10 @@ def get_random_mackowiak_exact_matches(bf_filtered, num_random_choices,
 
 
 def get_mackowiak_background(batch, num_random_samples, 
-                             bf_filtered, num_random_choices, 
-                             sorfs_file, seqname_prefix="",
-                            progress_bar=False):
+                             bf_filtered,
+                             num_random_choices, 
+                             sorfs_file,
+                             progress_bar=False):
 
     """ This function draws the specified number of random samples for a 
         permutation test using get_random_mackowiak_exact_matches. It is mostly
@@ -1308,23 +1321,38 @@ def get_mackowiak_background(batch, num_random_samples,
                 sample
 
         Imports:
-            misc.bio
+            misc.bio_utils.bed_utils
             numpy
-            pybedtools
             tqdm (if a progress bar is used)
             sys (if a progress bar is used)
     """
     import sys
+    import time
+
     import numpy as np
+
     import tqdm
-    import pybedtools
-    import misc.bio as bio
+    import misc.bio_utils.bed_utils as bed_utils
+
+    start = time.perf_counter()
     
-    sorfs = bio.read_bed(sorfs_file)
-    sorfs_bed = pybedtools.BedTool.from_dataframe(sorfs[bio.bed12_field_names])
+    sorfs = bed_utils.read_bed(sorfs_file)
+    t = time.perf_counter() - start
+    msg = "Time to read Mackowiak ORFs: {}".format(t)
+    logger.debug(msg)
+
+    sorfs_exons = bed_utils.split_bed12(sorfs)
+    t = time.perf_counter() - start
+    msg = "Time to split Mackowiak ORFs: {}".format(t)
+    logger.debug(msg)
+    
+    bf_exons = bed_utils.split_bed12(bf_filtered)
+    t = time.perf_counter() - start
+    msg = "Time to split ORFs: {}".format(t)
+    logger.debug(msg)
     
     ret = np.zeros(num_random_samples, dtype=int)
-    
+        
     it = range(num_random_samples)
     if progress_bar:
         import sys
@@ -1332,8 +1360,10 @@ def get_mackowiak_background(batch, num_random_samples,
         it = tqdm.tqdm(it, leave=True, file=sys.stdout, total=num_random_samples)
     
     for i in it:
-        num_exact_matches = get_random_mackowiak_exact_matches(bf_filtered, num_random_choices, 
-                                                               sorfs_bed, seqname_prefix=seqname_prefix)
+        num_exact_matches = get_random_mackowiak_exact_matches(bf_filtered,
+                                                               bf_exons,
+                                                               num_random_choices, 
+                                                               sorfs_exons)
         ret[i] = num_exact_matches
         
     return ret
