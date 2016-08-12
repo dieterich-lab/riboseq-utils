@@ -28,6 +28,24 @@ orf_type_labels_mapping = {
 }
 
 ###
+#   The following functions are helpful for parsing information out of the identifiers.
+###
+def get_transcript_id(orf_id, sep="_"):
+    return orf_id.split(sep)[0]
+
+def get_all_transcript_ids(orfs, sep="_", num_cpus=1, progress_bar=False):
+    import misc.parallel as parallel
+
+    transcript_ids = parallel.apply_parallel_iter(  orfs['id'],
+                                                    num_cpus,
+                                                    get_transcript_id,
+                                                    sep,
+                                                    progress_bar=progress_bar)
+
+    return transcript_ids
+
+
+###
 #   The following functions are all used for parsing replicates, etc., from the config file.
 ###
 
@@ -601,7 +619,9 @@ def get_bf_filter(bf, min_bf_mean=default_min_bf_mean,
 
         # scipy parameterizes the normal using the std, so use sqrt(var)
 
-        likelihood = 1-scipy.stats.norm.cdf(min_bf_mean, bf['bayes_factor_mean'], np.sqrt(bf['bayes_factor_var']))
+        loc = bf['bayes_factor_mean']
+        scale = np.sqrt(bf['bayes_factor_var'])
+        likelihood = 1-scipy.stats.norm.cdf(min_bf_mean, loc, scale)
 
         nans = np.isnan(likelihood)
         num_nans = sum(nans)
@@ -693,6 +713,7 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
 
     """
     import misc.bio as bio
+    import misc.bio_utils.bed_utils as bed_utils
     import numpy as np
     import scipy.stats
 
@@ -701,7 +722,7 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
 
     m_base = get_base_filter(bf, min_signal, min_length)
 
-    longest_orfs = bio.get_longest_features_by_end(bf[m_base])
+    longest_orfs = bed_utils.get_longest_features_by_end(bf[m_base])
     
     # create the selected ORFs
     m_bf =  get_bf_filter(bf, min_bf_mean, max_bf_var, min_bf_likelihood)
@@ -709,7 +730,7 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
     # apply all the filters
     m_bf_predicted = m_base & m_bf
 
-    bf_longest_predicted_orfs = bio.get_longest_features_by_end(bf[m_bf_predicted])
+    bf_longest_predicted_orfs = bed_utils.get_longest_features_by_end(bf[m_bf_predicted])
 
     M = len(longest_orfs)
     # for the bonferroni correction, we only correct for the number of tests we actually consider
@@ -722,7 +743,7 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
     m_chisq_pval = bf['chi_square_p'] < corrected_significance_level
     m_chisq_predicted = m_base & m_chisq_pval
 
-    chisq_longest_predicted_orfs = bio.get_longest_features_by_end(bf[m_chisq_predicted])
+    chisq_longest_predicted_orfs = bed_utils.get_longest_features_by_end(bf[m_chisq_predicted])
     
     return (longest_orfs, bf_longest_predicted_orfs, chisq_longest_predicted_orfs)
     
