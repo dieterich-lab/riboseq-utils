@@ -650,12 +650,13 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
                             min_bf_mean=default_min_bf_mean, 
                             max_bf_var=default_max_bf_var,
                             min_bf_likelihood=default_min_bf_likelihood,
-                            chisq_alpha=default_chisq_alpha):
+                            chisq_alpha=default_chisq_alpha,
+                            select_longest_by_stop=True):
     """ This function applies a set of filters to ORFs to select those which
         are predicted as "translated." This function selects translated ORFs
         based on the Bayes factor estimates and the chi-square p-values. ORFs
         must pass all of the relevant features to be selected as "translated."
-        Finally, among all ORFs which share a stop codon, only longest
+        Optionally, among all ORFs which share a stop codon, only the longest
         "translated" ORF is selected.
 
         Furthermore, for both BF and chi-square predictions, only ORFs which
@@ -696,8 +697,13 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
                 Bonferroni-corrected based on the number of ORFs which meet the
                 length, profile and frame filters.
 
+            select_longest_by_stop (bool): if True, then the selected ORFs will
+                be merged based on stop codons: only the longest translated ORF
+                at each stop codon will be returned. Otherwise, all ORFs will
+                be returned.
+
         Returns:
-            longest_orfs (pd.DataFrame) : all longest ORFs which meet the profile,
+            all_orfs (pd.DataFrame) : all (longest) ORFs which meet the profile,
                  length, frame filters
 
             bf_longest_orfs (pd.DataFrame) : all longest ORFs which meet the
@@ -717,22 +723,19 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
     import numpy as np
     import scipy.stats
 
-    msg = "Finding all longest ORFs with signal"
+    msg = "Finding all ORFs with signal"
     logger.info(msg)
 
     m_base = get_base_filter(bf, min_signal, min_length)
-
-    longest_orfs = bed_utils.get_longest_features_by_end(bf[m_base])
+    all_orfs = bf[m_base]
     
-    # create the selected ORFs
+    
+    # create the selected ORFs based on Bayes factor
     m_bf =  get_bf_filter(bf, min_bf_mean, max_bf_var, min_bf_likelihood)
-
-    # apply all the filters
     m_bf_predicted = m_base & m_bf
+    bf_predicted_orfs = bf[m_bf_predicted]
 
-    bf_longest_predicted_orfs = bed_utils.get_longest_features_by_end(bf[m_bf_predicted])
-
-    M = len(longest_orfs)
+    M = len(all_orfs)
     # for the bonferroni correction, we only correct for the number of tests we actually consider
     # that is, we only correct for orfs which pass the base filter
     corrected_significance_level = chisq_alpha / M
@@ -742,10 +745,14 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
     
     m_chisq_pval = bf['chi_square_p'] < corrected_significance_level
     m_chisq_predicted = m_base & m_chisq_pval
-
-    chisq_longest_predicted_orfs = bed_utils.get_longest_features_by_end(bf[m_chisq_predicted])
+    chisq_predicted_orfs = bf[m_chisq_predicted]
     
-    return (longest_orfs, bf_longest_predicted_orfs, chisq_longest_predicted_orfs)
+    if select_longest_by_stop:
+        all_orfs = bed_utils.get_longest_features_by_end(all_orfs)
+        bf_predicted_orfs = bed_utils.get_longest_features_by_end(bf_predicted_orfs)
+        chisq_predicted_orfs = bed_utils.get_longest_features_by_end(chisq_predicted_orfs)
+    
+    return (all_orfs, bf_predicted_orfs, chisq_predicted_orfs)
     
 
 ###
