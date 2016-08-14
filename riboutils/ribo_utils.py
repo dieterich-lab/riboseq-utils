@@ -202,8 +202,8 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
 
     # check if we specified to just use a fixed offset and length
     if 'use_fixed_lengths' in config:
-        lengths = config['lengths']
-        offsets = config['offsets']
+        lengths = [str(l) for l in config['lengths']]
+        offsets = [str(o) for o in config['offsets']]
 
         return (lengths, offsets)
 
