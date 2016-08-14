@@ -30,7 +30,9 @@ setup(name='riboutils',
         tests_require=['nose'],
         entry_points = {
             'console_scripts': [
-                                
+                'extract-metagene-profiles=riboutils.extract_metagene_profiles:main',
+                'estimate-metagene-profile-bayes-factors=riboutils.estimate_metagene_profile_bayes_factors:main',
+                'select-periodic-offsets=riboutils.select_periodic_offsets:main'                                
                                ]
         },
         zip_safe=False
