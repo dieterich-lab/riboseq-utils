@@ -73,7 +73,7 @@ def get_length_string(length=None):
 def get_merged_string(is_merged):
     m = ""
     if is_merged:
-        m = ".merged"
+        m = ".merged-isoforms"
     return m
 
 def get_micro_string(is_micro):
@@ -125,6 +125,11 @@ def get_transcriptome_string(is_transcriptome):
 
 
 ### b
+
+def get_bed(base_path, name, is_merged=False):
+    m = get_merged_string(is_merged)
+    fn = '{}{}.bed.gz'.format(name, m)
+    return os.path.join(base_path, fn)
 
 
 def get_bf_rpkm_scatter_plot(riboseq_base, name, length=None, offset=None, is_unique=False, 
