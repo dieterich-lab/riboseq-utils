@@ -781,6 +781,14 @@ def get_star_index(base_path, name, is_merged=False):
 
 
 ### t
+def get_te_kl(base_path, name, is_merged=False, note=None):
+
+    m = get_merged_string(is_merged)
+    n = get_note_string(note)
+    fn = '{}{}{}.te-kl.csv.gz'.format(name, m, n)
+    return os.path.join(base_path, fn)
+
+
 def get_te_kl_image_file(base_path, condition_1, condition_2, 
         is_merged=False, image_type='pdf', note=None):
 
@@ -797,6 +805,13 @@ def get_te_ma_image_file(base_path, condition_1, condition_2,
     n = get_note_string(note)
     fn = '{}{}-{}{}{}.te-ma.{}'.format(condition_1, m, condition_2, m, n, image_type)
     return os.path.join(base_path, 'plots', 'te-ma', fn)
+
+def get_te_pvalues(base_path, name, is_merged=False, note=None):
+
+    m = get_merged_string(is_merged)
+    n = get_note_string(note)
+    fn = '{}{}{}.te-pvalues.csv.gz'.format(name, m, n)
+    return os.path.join(base_path, fn)
 
 
 def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
