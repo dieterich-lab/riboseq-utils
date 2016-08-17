@@ -1,224 +1,82 @@
 #! /usr/bin/env python3
 
 import argparse
+import collections
 import numpy as np
 import pandas as pd
-import logging
-import sys
 
-import tqdm
-import pysam
-
-import misc.bio as bio
-import misc.logging_utils as logging_utils
-import misc.parallel as parallel
+import misc.bio_utils.bam_utils as bam_utils
+import misc.bio_utils.bed_utils as bed_utils
 import misc.utils as utils
 
+import logging
+import misc.logging_utils as logging_utils
 logger = logging.getLogger(__name__)
 
 
 default_num_cpus = 1
 default_lengths = []
-default_num_alignments = 0
 
 default_start_upstream = 50
 default_start_downstream = 20
 default_end_upstream = 50
 default_end_downstream = 20
 
-default_seqids_to_keep = []
 
-def find_forward_first_matching_read_positions(cds_region, reads):
-    upstream = cds_region['start_upstream']
-    downstream= cds_region['start_downstream']
+def get_interval_df(start, end, seqname, strand):
+    interval_df = pd.DataFrame()
+    interval_df['start'] = start
+    interval_df['end'] = end
+    interval_df['seqname'] = seqname
+    interval_df['strand'] = strand
+    interval_df['id'] = "."
+    interval_df['score'] = 0
+    return interval_df
+
+def get_length_strand_profiles(matches, profile_length):
+    init = lambda: np.zeros(profile_length, int)
+    length_strand_profiles = collections.defaultdict(init)
     
-    mask_start = (reads['start'] >= upstream) & (reads['start'] < downstream)
-    matching_reads = reads[mask_start]
-    relative_positions = np.array(matching_reads['start'] - upstream, dtype=int)
-    return relative_positions
-
-def find_forward_last_matching_read_positions(cds_region, reads):
-    upstream = cds_region['end_upstream']
-    downstream= cds_region['end_downstream']
-    
-    mask_start = (reads['start'] >= upstream) & (reads['start'] < downstream)
-    matching_reads = reads[mask_start]
-    relative_positions = np.array(matching_reads['start'] - upstream, dtype=int)
-    return relative_positions
-
-def find_reverse_first_matching_read_positions(cds_region, reads):
-    upstream = cds_region['start_upstream']
-    downstream= cds_region['start_downstream']
-    
-    mask_start = (reads['start'] <= upstream) & (reads['start'] >= downstream)
-    matching_reads = reads[mask_start]
-    relative_positions = np.array(matching_reads['start'] - downstream, dtype=int)
-    return relative_positions
-
-def find_reverse_last_matching_read_positions(cds_region, reads):
-    upstream = cds_region['end_upstream']
-    downstream= cds_region['end_downstream']
-    
-    mask_start = (reads['start'] <= upstream) & (reads['start'] >= downstream)
-    matching_reads = reads[mask_start]
-    relative_positions = np.array(matching_reads['start'] - downstream, dtype=int)
-    return relative_positions
-
-def get_metagene_profile(length_alignment_df, args):
-    length, alignment_df = length_alignment_df
-    
-    logger.debug("Getting annotated start and end regions...")
-    # pull out the canonical CDS regions
-    orfs = bio.read_bed(args.orfs)
-
-    m_canonical = orfs['orf_type'] == 'canonical'
-    m_forward = orfs['strand'] == '+'
-    m_reverse = ~m_forward
-    
-    #canonical_forward_df = orfs.loc[m_canonical & m_forward]
-    #canonical_reverse_df = orfs.loc[m_canonical & m_reverse]
-    m_canonical_forward = m_canonical & m_forward
-    m_canonical_reverse = m_canonical & m_reverse
-
-    msg = "Found {} forward canonical and {} reverse canonical ORFs".format(sum(m_canonical_forward), sum(m_canonical_reverse))
-    logger.debug(msg)
-
-    # start and end already contain the boundaries of the ORF
-
-    # set the ranges we want to find
-    #canonical_forward_df['start_upstream'] = canonical_forward_df['start'] - args.start_upstream
-    #canonical_forward_df['start_downstream'] = canonical_forward_df['start'] + args.start_downstream
-    orfs.loc[m_canonical_forward, 'start_upstream'] = orfs.loc[m_canonical_forward, 'start'] - args.start_upstream
-    orfs.loc[m_canonical_forward, 'start_downstream'] = orfs.loc[m_canonical_forward, 'start'] + args.start_downstream
-
-    #canonical_forward_df['end_upstream'] = canonical_forward_df['end'] - args.end_upstream
-    #canonical_forward_df['end_downstream'] = canonical_forward_df['end'] + args.end_downstream
-    orfs.loc[m_canonical_forward, 'end_upstream'] = orfs.loc[m_canonical_forward, 'end'] - args.end_upstream
-    orfs.loc[m_canonical_forward, 'end_downstream'] = orfs.loc[m_canonical_forward, 'end'] + args.end_downstream
-
-
-    # WE ARE SWITCHING THE ORDER OF THE COORDINATES FOR THE REVERSE STRAND
-    # AFTER THIS, start_upstream, etc., WILL HAVE THE SAME SEMANTICS AS FOR THE FORWARD STRAND
-    
-    #canonical_reverse_df['start_upstream'] = canonical_reverse_df['end'] + args.start_upstream
-    #canonical_reverse_df['start_downstream'] = canonical_reverse_df['end'] - args.start_downstream
-    orfs.loc[m_canonical_reverse, 'start_upstream'] = orfs.loc[m_canonical_reverse, 'end'] + args.start_upstream
-    orfs.loc[m_canonical_reverse, 'start_downstream'] = orfs.loc[m_canonical_reverse, 'end'] - args.start_downstream
-
-    #canonical_reverse_df['end_upstream'] = canonical_reverse_df['start'] + args.end_upstream
-    #canonical_reverse_df['end_downstream'] = canonical_reverse_df['start'] - args.end_downstream
-    orfs.loc[m_canonical_reverse, 'end_upstream'] = orfs.loc[m_canonical_reverse, 'start'] + args.end_upstream
-    orfs.loc[m_canonical_reverse, 'end_downstream'] = orfs.loc[m_canonical_reverse, 'start'] - args.end_downstream
-    
-    forward_first_cds_count = np.zeros(args.start_upstream + args.start_downstream + 1)
-    forward_last_cds_count = np.zeros(args.end_upstream + args.end_downstream + 1)
-
-    reverse_first_cds_count = np.zeros(args.start_upstream + args.start_downstream + 1)
-    reverse_last_cds_count = np.zeros(args.end_upstream + args.end_downstream + 1)
-    
-    if len(args.seqids_to_keep) > 0:
-        seqnames = args.seqids_to_keep
-    else:
-        #seqnames = canonical_forward_df['seqname'].unique()
-        seqnames = orfs.loc[m_canonical_forward, 'seqname'].unique()
-
-    for seqname in seqnames:
-        msg = "seqname: {}".format(seqname)
-        logger.debug(msg)
+    for match in matches:
+        position_info = match.position_info
         
-        mask_reads_seq = alignment_df['seqname'] == seqname
-        reads_region = alignment_df[mask_reads_seq]
+        relative_offset = int(match.relative_offset)
+        strand = position_info[5]
+        length = int(position_info[6])
         
-        m_orf_seq = orfs['seqname'] == seqname
+        profile = length_strand_profiles[(length, strand)]
         
-        # first, handle the forward, first CDS reads
-        logger.debug("ff...")
-        #mask_ff_seq = orfs['seqname'] == seqname
-        #forward_seq_df = canonical_forward_df[mask_ff_seq]
-        forward_seq_df = orfs[m_orf_seq & m_canonical_forward]
+        profile[relative_offset] += 1
+        
+    return length_strand_profiles
 
-        res = parallel.apply_df_simple(forward_seq_df, find_forward_first_matching_read_positions, reads_region)
-        if len(res) > 0:
-            res = np.concatenate(res)
-        for i in res:
-            forward_first_cds_count[i] += 1
-
-        msg = "Found {} reads in region".format(len(res))
-        logger.debug(msg)
-            
-        # the forward, last CDS reads
-        logger.debug("fl...")
-        res = parallel.apply_df_simple(forward_seq_df, find_forward_last_matching_read_positions, reads_region)
-        if len(res) > 0:
-            res = np.concatenate(res)
-        for i in res:
-            forward_last_cds_count[i] += 1
-
-        msg = "Found {} reads in region".format(len(res))
-        logger.debug(msg)
-            
-        # reverse, first CDS reads
-        logger.debug("rf...")
-        #m_rf_seq = canonical_reverse_df['seqname'] == seqname
-        #reverse_seq_df = canonical_reverse_df[mask_rf_seq]
-        reverse_seq_df = orfs[m_orf_seq & m_canonical_reverse]
-        res = parallel.apply_df_simple(reverse_seq_df, find_reverse_first_matching_read_positions, reads_region)
-        if len(res) > 0:
-            res = np.concatenate(res)
-        for i in res:
-            reverse_first_cds_count[i] += 1
-
-        msg = "Found {} reads in region".format(len(res))
-        logger.debug(msg)
-            
-        # reverse, last CDS reads
-        logger.debug("rl...")
-        res = parallel.apply_df_simple(reverse_seq_df, find_reverse_last_matching_read_positions, reads_region)
-        if len(res) > 0:
-            res = np.concatenate(res)
-        for i in res:
-            reverse_last_cds_count[i] += 1
-
-        msg = "Found {} reads in region".format(len(res))
-        logger.debug(msg)
-
-    # we need to reverse the "reverse" counts so they match the forward strand counts
-    reverse_first_cds_count_r = reverse_first_cds_count[::-1]
-    reverse_last_cds_count_r = reverse_last_cds_count[::-1]
-
-    start_counts = reverse_first_cds_count_r + forward_first_cds_count
-    end_counts = reverse_last_cds_count_r + forward_last_cds_count
-
-    start_positions = range(-1*args.start_upstream, args.start_downstream + 1)
-    end_positions = range(-1*args.end_upstream, args.end_downstream + 1)
-
-    logger.debug("len(start_positions): {}".format(len(start_positions)))
-    logger.debug("len(start_counts): {}".format(len(start_counts)))
-
-    # now, we need to dump this signal out
-    start_df = pd.DataFrame()
-    start_df['count'] = start_counts
-    start_df['position'] = start_positions
-    start_df['type'] = 'start'
-
-    end_df = pd.DataFrame()
-    end_df['count'] = end_counts
-    end_df['position'] = end_positions
-    end_df['type'] = 'end'
-
-    length_profile_df = pd.concat([start_df, end_df])
-    length_profile_df['length'] = length
+def get_metagene_profile_df(length, type_label, length_strand_profiles, upstream, downstream):
+    reverse_metagene_profile = length_strand_profiles[(length, '-')]
+    forward_metagene_profile = length_strand_profiles[(length, '+')]
     
-    return length_profile_df
+    metagene_profile = forward_metagene_profile + reverse_metagene_profile[::-1]
+    
+    if sum(metagene_profile) == 0:
+        return None
 
-
+    offset = range(-1*upstream, downstream+1)
+    
+    metagene_profile_df = pd.DataFrame()
+    metagene_profile_df['position'] = offset
+    metagene_profile_df['count'] = metagene_profile
+    metagene_profile_df['type'] = type_label
+    metagene_profile_df['length'] = length
+    
+    return metagene_profile_df
+     
 def main():
+
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="This script extracts the metagene profile from reads in a BAM "
         "file, possibly filtering by length. It attempts to vectorize as many of the "
         "counting operations as possible.")
     parser.add_argument('bam', help="The bam file")
-    parser.add_argument('orfs', help="The annotated orfs (bed) file")
+    parser.add_argument('orfs', help="The annotated transcripts (bed) file")
     parser.add_argument('out', help="The (output) csv.gz counts file")
 
     parser.add_argument('-p', '--num-cpus', help="The number of processors to use",
@@ -230,14 +88,6 @@ def main():
     parser.add_argument('--lengths', help="If specified, then metagene profiles will be "
         "created for reads of each length. Otherwise, profiles will be created for each "
         "read length present in the bam file.", type=int, nargs='*', default=default_lengths)
-
-    parser.add_argument('--seqids-to-keep', help="If any seqids are given here, then "
-        "only those will be retained.", nargs='+', default=default_seqids_to_keep)
-
-    parser.add_argument('--num-alignments', help="If this value is >0, then only the "
-        "first k alignments in the file will be analyzes. This is implemented using "
-        "pysam.AlignmentFile.head, so its semantics determine the analyzed alignments.",
-        type=int, default=default_num_alignments)
 
     parser.add_argument('--start-upstream', type=int, default=default_start_upstream, 
         help="The number of bases upstream of the translation initiation site to begin "
@@ -251,66 +101,139 @@ def main():
     parser.add_argument('--end-downstream', type=int, default=default_end_downstream,
         help="The number of bases downstream of the translation termination site to end "
         "the metagene profile.")
-
+    
     logging_utils.add_logging_options(parser)
     args = parser.parse_args()
     logging_utils.update_logging(args)
 
-    if args.is_sam:
-        bam = pysam.AlignmentFile(args.bam, 'r')
-    else:
-        bam = pysam.AlignmentFile(args.bam, 'rb')
+    # first, get the 5' ends of the reads
+    alignment_df = bam_utils.get_five_prime_ends(args.bam, progress_bar=True, 
+        count=True, logger=logger)
 
-    logger.info("Processing alignments...")
+    msg = "Reading annotations"
+    logger.info(msg)
+    annotations_df = bed_utils.read_bed(args.orfs)
 
-    if args.num_alignments != default_num_alignments:
-        alignments = bam.head(args.num_alignments)
-        num_alignments = args.num_alignments
-    else:
-        alignments = bam.fetch()
-        num_alignments = bam.count()
-    
-    lengths = np.zeros(num_alignments)
-    starts = np.zeros(num_alignments)
-    seqs = [None] * num_alignments
-
-    for i, a in enumerate(tqdm.tqdm(alignments, leave=True, file=sys.stdout, total=num_alignments)):
-        starts[i] = a.reference_start
-        if a.is_reverse:
-            starts[i] = a.reference_end
-            
-        lengths[i] = a.qlen
-        seqs[i] = a.reference_name
-
-    alignment_df = pd.DataFrame()
-    alignment_df['start'] = starts
-    alignment_df['length'] = lengths
-    alignment_df['seqname'] = seqs
-    
-    msg = "Reads remaining after filtering: {}".format(len(alignment_df))
+    msg = "Constructing canonical translation initiation ORF data frames"
     logger.info(msg)
 
+    m_has_canonical = annotations_df['thick_start'] > -1
+    m_forward = annotations_df['strand'] == '+'
+
+    m_canonical_forward = m_has_canonical & m_forward
+    m_canonical_reverse = m_has_canonical & ~m_forward
+
+    # forward translation initiation
+    start = annotations_df.loc[m_canonical_forward, 'thick_start'] - args.start_upstream
+    end = annotations_df.loc[m_canonical_forward, 'thick_start'] + args.start_downstream
+    seqname = annotations_df.loc[m_canonical_forward, 'seqname']
+    strand = '+'
+
+    intervals_forward_initiation_bed = get_interval_df(start, end, seqname, strand)
+
+    # reverse translation initation
+    start = annotations_df.loc[m_canonical_reverse, 'thick_end'] - args.start_downstream
+    end = annotations_df.loc[m_canonical_reverse, 'thick_end'] + args.start_upstream
+    seqname = annotations_df.loc[m_canonical_reverse, 'seqname']
+    strand = '-'
+
+    intervals_reverse_initiation_bed = get_interval_df(start, end, seqname, strand)
+
+    # all translation initiation regions
+    intervals_initiation_bed = pd.concat([intervals_forward_initiation_bed, intervals_reverse_initiation_bed])
+
+    # make sure we do not double count isoforms with the same starts
+    intervals_initiation_bed = intervals_initiation_bed.drop_duplicates()
+
+    msg = "Constructing canonical translation termination ORF data frames"
+    logger.info(msg)
+    
+    # forward translation termination
+    start = annotations_df.loc[m_canonical_forward, 'thick_end'] - args.end_upstream
+    end = annotations_df.loc[m_canonical_forward, 'thick_end'] + args.end_downstream
+    seqname = annotations_df.loc[m_canonical_forward, 'seqname']
+    strand = '+'
+    
+    intervals_forward_termination_bed = get_interval_df(start, end, seqname, strand)
+
+    # reverse translation termination
+    start = annotations_df.loc[m_canonical_reverse, 'thick_start'] - args.end_downstream
+    end = annotations_df.loc[m_canonical_reverse, 'thick_start'] + args.end_upstream
+    seqname = annotations_df.loc[m_canonical_reverse, 'seqname']
+    strand = '-'
+    intervals_reverse_termination_bed = get_interval_df(start, end, seqname, strand)
+
+    # all translation termination regions
+    intervals_termination_bed = pd.concat([intervals_forward_termination_bed, intervals_reverse_termination_bed])
+
+    # make sure we do not double count isoforms with the same starts
+    intervals_termination_bed = intervals_termination_bed.drop_duplicates()
+
+    msg = "Finding translation initiation site matches"
+    logger.info(msg)
+
+    initiation_matches = bed_utils.get_all_position_intersections(alignment_df, intervals_initiation_bed)
+    profile_length = args.start_upstream + args.start_downstream + 1
+    initiation_length_strand_profiles = get_length_strand_profiles(initiation_matches, profile_length)
+
+    initiation_keys_str = ','.join(str(k) for k in initiation_length_strand_profiles.keys())
+    msg = "Initiation keys: {}".format(initiation_keys_str)
+    logger.debug(msg)
+
+    msg = "Finding translation termination site matches"
+    logger.info(msg)
+
+    termination_matches = bed_utils.get_all_position_intersections(alignment_df, intervals_termination_bed)
+    profile_length = args.end_upstream + args.end_downstream + 1
+    termination_length_strand_profiles = get_length_strand_profiles(termination_matches, profile_length)
+
+    termination_keys_str = ','.join(str(k) for k in termination_length_strand_profiles.keys())
+    msg = "Termination keys: {}".format(termination_keys_str)
+    logger.debug(msg)
+
+    msg = "Extracting metagene profiles"
+    logger.info(msg)
+
+    
     if len(args.lengths) == 0:
         args.lengths = list(alignment_df['length'].unique())
 
-    length_str = ','.join(str(int(l)) for l in args.lengths)
+    args.lengths = np.sort(args.lengths)
+    args.lengths = [int(l) for l in args.lengths]
+    length_str = ','.join(str(l) for l in args.lengths)
     msg = "Profiles will be created for lengths: {}".format(length_str)
     logger.info(msg)
 
+    all_metagene_profile_dfs = []
 
-    # now, split out the individual length dfs
-    length_alignment_dfs = []
-    for l in args.lengths:
-        m_length = alignment_df['length'] == l
-        l_df = pd.DataFrame(alignment_df[m_length])
-        length_alignment_dfs.append((l, l_df))
+    for length in args.lengths:
+        # first, the profile for this length around initiation sites
+        initiation_profile_df = get_metagene_profile_df(length, 
+                                                        'start',
+                                                        initiation_length_strand_profiles, 
+                                                        args.start_upstream, 
+                                                        args.start_downstream)
+        
+        all_metagene_profile_dfs.append(initiation_profile_df)
+        
+        # and around termination sites
+        termination_profile_df = get_metagene_profile_df(length, 
+                                                        'end',
+                                                        termination_length_strand_profiles, 
+                                                        args.end_upstream, 
+                                                        args.end_downstream)
+        
+        all_metagene_profile_dfs.append(termination_profile_df)
+        
+    # filter out all of the profiles which did not have any reads
+    all_metagene_profile_dfs = [df for df in all_metagene_profile_dfs if df is not None]
 
-    all_profiles_df = parallel.apply_parallel_iter(length_alignment_dfs, args.num_cpus, 
-        get_metagene_profile, args, progress_bar=True)
-    all_profiles_df = pd.concat(all_profiles_df)
-    
-    utils.write_df(all_profiles_df, args.out, index=False)
+    # join them together in one large data frame
+    all_metagene_profile_dfs = pd.concat(all_metagene_profile_dfs)
+
+    msg = "Writing metagene profiles to disk"
+    logger.info(msg)
+    utils.write_df(all_metagene_profile_dfs, args.out, index=False)
 
 if __name__ == '__main__':
     main()
-
