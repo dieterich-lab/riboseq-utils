@@ -1051,11 +1051,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
                 condition_1, condition_2, field, samples_per_group, group_seed,
                 progress_bar=True, num_groups=num_groups)
    
-    print(len(random_kls))
     random_ks = utils.flatten_lists(random_kls)
-    print(len(random_ks))
-    #random_ks = np.array(random_kls, dtype=object)
-    #print(random_ks.shape)
     random_kls = random_ks[0::3]
     random_ps = random_ks[1::3]
     random_qs = random_ks[2::3]
@@ -1064,12 +1060,6 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
     random_ps = np.concatenate(random_ps)
     random_qs = np.concatenate(random_qs)
 
-    print(random_kls.shape)
-    print(random_qs.shape)
-    print(random_ps.shape)
-    #print(random_kls)
-    #print(random_ps)
-    #print(random_qs)
     kls = np.array(sorted(random_kls))
 
     kl_field_name = "{}_{}_{}_kl_divergence".format(field, condition_1, condition_2)
