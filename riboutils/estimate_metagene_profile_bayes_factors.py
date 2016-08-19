@@ -81,8 +81,19 @@ def estimate_profile_bayes_factors(profile, args):
     start_counts = start_profile_df[args.count_field].values
     
     # find the positions of the offsets of interest within the arrays
-    begin_index = np.where(start_positions==args.periodic_offset_start)[0][0]
-    stop_index = np.where(start_positions==args.periodic_offset_end)[0][0]
+    begin_start_pos = np.where(start_positions==args.periodic_offset_start)[0]
+    if len(begin_start_pos) == 0:
+        msg = "Did not find any start offsets for length: {}".format(length)
+        logging.warning(msg)
+        return None
+    begin_index = begin_start_pos[0]
+
+    stop_start_pos = np.where(start_positions==args.periodic_offset_end)[0]
+    if len(stop_start_pos) == 0:
+        msg = "Did not find any stop offsets for length: {}".format(length)
+        logging.warning(msg)
+        return None
+    stop_index = stop_start_pos[0]
     
     # collect all of the results as a data frame
     ret = []
@@ -193,22 +204,18 @@ def main():
     lengths = list(metagene_profiles['length'].unique())
 
     length_str = ','.join(str(int(l)) for l in lengths)
-    msg = "Profiles will be created for lengths: {}".format(length_str)
+    msg = "Estimating Bayes factors for lengths: {}".format(length_str)
     logger.info(msg)
 
     length_groups = metagene_profiles.groupby('length')
 
-    # this does not seem to work
-    # it is an attempt to redirect stderr to /dev/null so we don't
-    # see the useless Stan output
-    temp = sys.stderr
-    f = open(os.devnull, 'w')
-    sys.stderr = f
-
     all_profile_estimates_df = parallel.apply_parallel_groups(length_groups, args.num_cpus,
         estimate_profile_bayes_factors, args, progress_bar=True)
-    sys.stderr = temp
+
+    msg = "Combining estimates into one data frame"
+    logger.info(msg)
     
+    all_profile_estimates_df = utils.remove_nones(all_profile_estimates_df) 
     all_profile_estimates_df = pd.concat(all_profile_estimates_df)
 
     utils.write_df(all_profile_estimates_df, args.out, index=False)
