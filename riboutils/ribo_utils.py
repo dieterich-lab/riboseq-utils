@@ -315,6 +315,26 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     offsets = filtered_periodic_offsets['highest_peak_offset']
     lengths = filtered_periodic_offsets['length']
 
+     
+    if len(lengths) == 0:
+        msg = ("The periodic offsets file was found, but no periodic lengths "
+            "were found. Please ensure the select-periodic-offsets script "
+            "completed successfully or specify the \"use_fixed_lengths\", \"lengths\", and "
+            "\"offsets\" values in the configuration file. '{}'".format(periodic_offsets))
+
+        if do_not_call:
+            msg = msg +  ("\nThe --do-not-call flag was given, so \"dummy\" default lengths will be "
+                "used to check the remaining calls.\n")
+
+            logger.warning(msg)
+
+            offsets = ["12"]
+            lengths = ["29"]
+            return (lengths, offsets)
+        else:
+            raise ValueError(msg)
+
+
     # offsets must be positive
     offsets = [str(-1*int(o)) for o in offsets]
     lengths = [str(int(l)) for l in lengths]
