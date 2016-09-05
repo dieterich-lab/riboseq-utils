@@ -10,9 +10,9 @@ def get_cds_only_string(is_cds_only):
     return cds_only
 
 def get_chisq_string(is_chisq):
-    chisq = ".rpbp"
+    chisq = ""
     if is_chisq:
-        chisq = ".rpchi"
+        chisq = ".chisq"
     return chisq
 
 def get_fastqc_name(filename):
@@ -73,7 +73,7 @@ def get_length_string(length=None):
 def get_merged_string(is_merged):
     m = ""
     if is_merged:
-        m = ".merged"
+        m = ".merged-isoforms"
     return m
 
 def get_micro_string(is_micro):
@@ -126,6 +126,11 @@ def get_transcriptome_string(is_transcriptome):
 
 ### b
 
+def get_bed(base_path, name, is_merged=False):
+    m = get_merged_string(is_merged)
+    fn = '{}{}.bed.gz'.format(name, m)
+    return os.path.join(base_path, fn)
+
 
 def get_bf_rpkm_scatter_plot(riboseq_base, name, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
@@ -162,6 +167,13 @@ def get_diff_reg_image_file(base_path, condition_1, condition_2,
     fn = '{}{}-{}{}{}.diff-reg.{}'.format(condition_1, m, condition_2, m, n, image_type)
     return os.path.join(base_path, 'plots', 'diff-reg', fn)
 
+### e
+# used
+def get_exons(base_path, name, note=None):
+    note_str = get_note_string(note)
+    fn = '{}.orfs-exons{}.bed.gz'.format(name, note_str)
+    return os.path.join(base_path, 'transcript-index', fn)
+ 
 
 ### g
 
@@ -201,13 +213,13 @@ def get_metagene_profiles_bayes_factors(riboseq_base, name, length=None, is_uniq
     return s
 
 # used
-def get_default_models_base():
+def get_default_models_base(project="rpbp_models"):
     import appdirs
 
     appname = "rpbp"
     appauthor = "dieterich-lab"
     models_base = appdirs.user_data_dir(appname, appauthor)
-    models_base = os.path.join(models_base, "rpbp_models")
+    models_base = os.path.join(models_base, project)
     return models_base
 
 
@@ -756,7 +768,7 @@ def get_rpkm_vs_rpkm_image_file(base_path, condition_1, condition_2,
 
     m = get_merged_string(is_merged)
     n = get_note_string(note)
-    fn = '{}{}-{}{}.{}-rpkm-vs-rpkm.{}'.format(condition_1, m, condition_2, m, n, field, image_type)
+    fn = '{}{}-{}{}{}.{}-rpkm-vs-rpkm.{}'.format(condition_1, m, condition_2, m, n, field, image_type)
     return os.path.join(base_path, 'plots', 'rpkm-vs-rpkm', fn)
 
 ### s
@@ -769,6 +781,14 @@ def get_star_index(base_path, name, is_merged=False):
 
 
 ### t
+def get_te_kl(base_path, name, is_merged=False, note=None):
+
+    m = get_merged_string(is_merged)
+    n = get_note_string(note)
+    fn = '{}{}{}.te-kl.csv.gz'.format(name, m, n)
+    return os.path.join(base_path, fn)
+
+
 def get_te_kl_image_file(base_path, condition_1, condition_2, 
         is_merged=False, image_type='pdf', note=None):
 
@@ -785,6 +805,13 @@ def get_te_ma_image_file(base_path, condition_1, condition_2,
     n = get_note_string(note)
     fn = '{}{}-{}{}{}.te-ma.{}'.format(condition_1, m, condition_2, m, n, image_type)
     return os.path.join(base_path, 'plots', 'te-ma', fn)
+
+def get_te_pvalues(base_path, name, is_merged=False, note=None):
+
+    m = get_merged_string(is_merged)
+    n = get_note_string(note)
+    fn = '{}{}{}.te-pvalues.csv.gz'.format(name, m, n)
+    return os.path.join(base_path, fn)
 
 
 def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
