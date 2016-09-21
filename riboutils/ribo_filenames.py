@@ -228,6 +228,40 @@ def get_models(models_base, model_type):
     models = glob.glob(path_ex)
     return models
 
+# used
+def get_motif_analysis_base_folder(base, condition_1, condition_2, criterion, sequence_type):
+    folder = "{}.{}.{}.{}".format(condition_1, condition_2, criterion, sequence_type)
+    folder = os.path.join(base, 'motif-analysis', folder)
+    return folder
+
+
+def get_motif_analysis_folder(base, condition_1, condition_2, criterion, 
+        sequence_type, fore_condition):
+
+    folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
+        criterion, sequence_type)
+
+    subfolder = "{}.fore".format(fore_condition)
+    return os.path.join(folder, subfolder)
+
+
+def get_motif_analysis_results(base, condition_1, condition_2, criterion, 
+        sequence_type, fore_condition):
+
+    folder = get_motif_analysis_folder(base, condition_1, condition_2, 
+        criterion, sequence_type, fore_condition)
+
+    result_file = os.path.join(folder, "ame.txt")
+    return result_file
+
+def get_motif_sequences(base, condition_1, condition_2, criterion, direction, sequence_type):
+    folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
+        criterion, sequence_type)
+
+    motif_sequences = "{}.{}-{}.{}.fa".format(condition_2, criterion, direction, sequence_type)
+    motif_sequences = os.path.join(folder, motif_sequences)
+    return motif_sequences
+
 ### o
 # used
 def get_orfs(base_path, name, note=None):
