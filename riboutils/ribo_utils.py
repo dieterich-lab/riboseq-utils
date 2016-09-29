@@ -155,7 +155,9 @@ default_min_metagene_bf_mean = 5
 default_max_metagene_bf_var = None
 default_min_metagene_bf_likelihood = 0.5
 
-def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=False):
+def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=False,
+            is_isoforms=False):
+
     """ This function applies a set of filters to metagene profiles to select those
         which are "periodic" based on the read counts and Bayes factor estimates.
 
@@ -205,6 +207,9 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
             is_merged (bool) : whether the "merged" transcripts are used (i.e., is
                 this for rpbp or ribo-te)
 
+            is_isoforms (bool): whether the transcript isforms are used (i.e., is
+                this the transcript-abundance variant of ribo-te)
+
         Returns:
             lengths (list of strings) : all of the periodic read lengths
 
@@ -241,7 +246,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     note_str = config.get('note', None)
 
     periodic_offsets = filenames.get_periodic_offsets(config['riboseq_data'], name, 
-        is_unique=True, is_merged=is_merged, note=note_str)
+        is_unique=True, is_merged=is_merged, is_isoforms=is_isoforms, note=note_str)
     
     if not os.path.exists(periodic_offsets):
         msg = ("The periodic offsets file does not exist. Please ensure the select-periodic-offsets "
