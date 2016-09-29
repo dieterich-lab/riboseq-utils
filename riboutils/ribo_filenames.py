@@ -60,6 +60,13 @@ def get_grouped_string(is_grouped):
         g = ".grouped"
     return g
 
+def get_isoforms_string(is_isoform):
+    i = ""
+    if is_isoform:
+        i = ".isoforms"
+    return i
+
+
 def get_length_string(length=None):
     l = ""
     if length is not None:
@@ -705,24 +712,26 @@ def get_riboseq_read_length_distribution_image(riboseq_base, name, length=None, 
 
 # b
 def get_rnaseq_bam_base(rnaseq_base, name, length=None, is_unique=False, is_cds_only=False, 
-        is_transcriptome=False, is_merged=False, note=None):
+        is_transcriptome=False, is_merged=False, is_isoforms=False, note=None):
 
     cds_only = get_cds_only_string(is_cds_only)
     unique = get_unique_string(is_unique)
     l = get_length_string(length)
     transcriptome = get_transcriptome_string(is_transcriptome)
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
 
-    return os.path.join(rnaseq_base, 'mapping', '{}{}{}{}{}{}{}'.format(name, n, transcriptome, 
-        m, unique, cds_only, l))
+    return os.path.join(rnaseq_base, 'mapping', '{}{}{}{}{}{}{}{}'.format(name, n, transcriptome, 
+        m, i, unique, cds_only, l))
 
 
 def get_rnaseq_bam(rnaseq_base, name, length=None, is_unique=False, is_cds_only=False, 
-        is_transcriptome=False, is_merged=False, note=None):
+        is_transcriptome=False, is_merged=False, is_isoforms=False, note=None):
     
     s = get_rnaseq_bam_base(rnaseq_base, name, length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
     s = s + ".bam"
     return s
 
@@ -730,51 +739,62 @@ def get_rnaseq_bam_path(base_path):
     return os.path.join(base_path, 'mapping',)
 
 def get_rnaseq_bitseq(rnaseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, is_merged=False, 
+        is_isoforms=False, note=None):
     
     unique = get_unique_string(is_unique)
     cds_only = get_cds_only_string(is_cds_only)
     l = get_length_string(length)
     transcriptome = get_transcriptome_string(is_transcriptome)
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
+
     n = get_note_string(note)
 
     return os.path.join(rnaseq_base, 'transcript-abundance', 
-        '{}-rna{}{}{}{}{}{}.bitseq'.format(name, n, transcriptome, m, unique, cds_only, l))
+        '{}-rna{}{}{}{}{}{}{}.bitseq'.format(name, n, transcriptome, m, i, unique, cds_only, l))
 
 def get_rnaseq_bitseq_malphas(rnaseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, is_merged=False, 
+        is_isoforms=False, note=None):
 
     s = get_rnaseq_bitseq(rnaseq_base, name, length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".m_alphas"
     return s
 
 def get_rnaseq_bitseq_prob(rnaseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, is_merged=False, 
+        is_isoforms=False, note=None):
 
     s = get_rnaseq_bitseq(rnaseq_base, name, length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".prob"
     return s
 
 def get_rnaseq_bitseq_rpkm(rnaseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, is_merged=False, 
+        is_isoforms=False, note=None):
 
     s = get_rnaseq_bitseq(rnaseq_base, name, length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".rpkm"
     return s
 
 
 def get_rnaseq_bitseq_rpkm_mean(rnaseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, is_merged=False, 
+        is_isoforms=False, note=None):
 
     s = get_rnaseq_bitseq(rnaseq_base, name, length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".rpkm.mean"
     return s
