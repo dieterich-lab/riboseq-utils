@@ -167,11 +167,12 @@ def get_changepoint_image_file(base_path, note, condition, group, lookback, cp_t
 
 ### d
 def get_diff_reg_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, image_type='pdf', note=None):
+        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
 
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}-{}{}{}.diff-reg.{}'.format(condition_1, m, condition_2, m, n, image_type)
+    fn = '{}{}{}-{}{}{}{}.diff-reg.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'diff-reg', fn)
 
 ### e
@@ -192,29 +193,30 @@ def get_gtf(base_path, name, is_merged=False):
 ### m
 
 # used
-def get_mean_and_var_image_file(base_path, condition, is_merged=False, image_type='pdf', note=None):
+def get_mean_and_var_image_file(base_path, condition, is_merged=False, is_isoforms=False, image_type='pdf', note=None):
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}{}.mean-and-var.{}'.format(condition, m, n, image_type)
+    fn = '{}{}{}{}.mean-and-var.{}'.format(condition, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'mean-and-var', fn)
 
 
 # used
 def get_metagene_profiles(riboseq_base, name, length=None, is_unique=False, is_cds_only=False, 
-        is_transcriptome=False, is_merged=False, note=None):
+        is_transcriptome=False, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_base(riboseq_base, name, 'metagene-profiles', length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".metagene-profile.csv.gz"
     return s
 
 # used
 def get_metagene_profiles_bayes_factors(riboseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_base(riboseq_base, name, 'metagene-profiles', length=length, is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".metagene-periodicity-bayes-factors.csv.gz"
     return s
@@ -339,10 +341,10 @@ def get_peptide_coverage_line_graph(riboseq_base, name, length=None, offset=None
 
 # used
 def get_periodic_offsets(riboseq_base, name, is_unique=False, is_cds_only=False, 
-        is_transcriptome=False, is_merged=False, note=None):
+        is_transcriptome=False, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_base(riboseq_base, name, 'metagene-profiles', is_unique=is_unique, 
-        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+        is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, is_isoforms=is_isoforms, note=note)
     s = s + ".periodic-offsets.csv.gz"
     return s
 
@@ -375,7 +377,7 @@ def get_raw_data_fastqc_data(base_path, filename):
 # used
 def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, is_unique=False, 
         is_cds_only=False, is_transcriptome=False, is_smooth=False, fraction=None, 
-        reweighting_iterations=None, is_chisq=False, is_merged=False, is_grouped=False, 
+        reweighting_iterations=None, is_chisq=False, is_merged=False, is_isoforms=False, is_grouped=False, 
         is_filtered=False, note=None):
     
     cds_only = get_cds_only_string(is_cds_only)
@@ -385,6 +387,7 @@ def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, i
     transcriptome = get_transcriptome_string(is_transcriptome)
     chisq = get_chisq_string(is_chisq)
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
     s = get_smooth_string(is_smooth)
     f = get_fraction_string(fraction)
@@ -392,28 +395,28 @@ def get_riboseq_base(riboseq_base, name, sub_folder, length=None, offset=None, i
     g = get_grouped_string(is_grouped)
     fi = get_filtered_string(is_filtered)
     return os.path.join(riboseq_base, sub_folder, 
-        '{}{}{}{}{}{}{}{}{}{}{}{}{}{}'.format(
-        name, n, transcriptome, m, unique, cds_only, l, o, s, f, r, chisq, g, fi))
+        '{}{}{}{}{}{}{}{}{}{}{}{}{}{}{}'.format(
+        name, n, transcriptome, m, i, unique, cds_only, l, o, s, f, r, chisq, g, fi))
 
 
 
 # used
 
 def get_riboseq_bam_base(riboseq_base, name, length=None, is_unique=False, is_cds_only=False, 
-        is_transcriptome=False, offset=None, is_merged=False, note=None):
+        is_transcriptome=False, offset=None, is_merged=False, is_isoforms=False, note=None):
     
     bam_base = get_riboseq_base(riboseq_base, name, 'without-rrna-mapping', length=length, is_unique=is_unique, 
         is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, offset=offset, 
-        is_merged=is_merged, note=note)
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
     return bam_base
 
 # used
 def get_riboseq_bam(riboseq_base, name, length=None, is_unique=False, is_cds_only=False, 
-        is_transcriptome=False, offset=None, note=None, is_merged=False):
+        is_transcriptome=False, offset=None, note=None, is_merged=False, is_isoforms=False):
 
     s = get_riboseq_bam_base(riboseq_base, name, length=length, is_unique=is_unique, 
         is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, offset=offset,
-        is_merged=is_merged, note=note)
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
     s = s + ".bam"
     return s
 
@@ -468,54 +471,55 @@ def get_riboseq_bayes_factors(riboseq_base, name, length=None, offset=None, is_u
 
 
 def get_riboseq_bitseq(riboseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, is_isoforms=False, note=None):
 
     unique = get_unique_string(is_unique)
     cds_only = get_cds_only_string(is_cds_only)
     l = get_length_string(length)
     o = get_offset_string(offset)
-    m = get_merged_string(is_merged)    
+    m = get_merged_string(is_merged)   
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
     transcriptome = get_transcriptome_string(is_transcriptome)
     
     return os.path.join(riboseq_base, 'transcript-abundance', 
-        '{}{}{}{}{}{}{}{}.bitseq'.format(name, n, transcriptome, m, unique, cds_only, l, o))
+        '{}{}{}{}{}{}{}{}{}.bitseq'.format(name, n, transcriptome, m, i, unique, cds_only, l, o))
 
 def get_riboseq_bitseq_malphas(riboseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_bitseq(riboseq_base, name, length=length, is_unique=is_unique, 
-            is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, note=note)
+            is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".m_alphas"
     return s
 
 def get_riboseq_bitseq_prob(riboseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_bitseq(riboseq_base, name, length=length, is_unique=is_unique, 
         is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, offset=offset, 
-        is_merged=is_merged, note=note)
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".prob"
     return s
 
 def get_riboseq_bitseq_rpkm(riboseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_bitseq(riboseq_base, name, length=length, is_unique=is_unique, 
         is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, offset=offset,
-        is_merged=is_merged, note=note)
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".rpkm"
     return s
 
 def get_riboseq_bitseq_rpkm_mean(riboseq_base, name, length=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, note=None):
+        is_cds_only=False, is_transcriptome=False, offset=None, is_merged=False, is_isoforms=False, note=None):
 
     s = get_riboseq_bitseq(riboseq_base, name, length=length, is_unique=is_unique, 
         is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, offset=offset, 
-        is_merged=is_merged, note=note)
+        is_merged=is_merged, is_isoforms=is_isoforms, note=note)
 
     s = s + ".rpkm.mean"
     return s
@@ -801,7 +805,7 @@ def get_rnaseq_bitseq_rpkm_mean(rnaseq_base, name, length=None, is_unique=False,
 
 
 # used
-def get_rpkm_image_file(base_path, condition, is_merged=False, image_type='pdf', note=None):
+def get_rpkm_image_file(base_path, condition, is_merged=False, is_isoforms=False, image_type='pdf', note=None):
     m = get_merged_string(is_merged)
     n = get_note_string(note)
     fn = '{}{}{}.rpkm.{}'.format(condition, m, n, image_type)
@@ -809,7 +813,7 @@ def get_rpkm_image_file(base_path, condition, is_merged=False, image_type='pdf',
 
 # used
 def get_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, image_type='pdf', note=None):
+        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
 
     m = get_merged_string(is_merged)
     n = get_note_string(note)
@@ -818,7 +822,7 @@ def get_rpkm_fold_change_image_file(base_path, condition_1, condition_2,
 
 # used
 def get_rpkm_vs_rpkm_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, image_type='pdf', field='ribo', note=None):
+        is_merged=False, is_isoforms=False, image_type='pdf', field='ribo', note=None):
 
     m = get_merged_string(is_merged)
     n = get_note_string(note)
@@ -835,45 +839,50 @@ def get_star_index(base_path, name, is_merged=False):
 
 
 ### t
-def get_te_kl(base_path, name, is_merged=False, note=None):
+def get_te_kl(base_path, name, is_merged=False, is_isoforms=False, note=None):
 
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}{}.te-kl.csv.gz'.format(name, m, n)
+    fn = '{}{}{}{}.te-kl.csv.gz'.format(name, m, i, n)
     return os.path.join(base_path, fn)
 
 
 def get_te_kl_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, image_type='pdf', note=None):
+        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
 
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}-{}{}{}.te-kl.{}'.format(condition_1, m, condition_2, m, n, image_type)
+    fn = '{}{}{}-{}{}{}{}.te-kl.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'te-kl', fn)
 
 
 def get_te_ma_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, image_type='pdf', note=None):
+        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
 
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}-{}{}{}.te-ma.{}'.format(condition_1, m, condition_2, m, n, image_type)
+    fn = '{}{}{}-{}{}{}{}.te-ma.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'te-ma', fn)
 
-def get_te_pvalues(base_path, name, is_merged=False, note=None):
+def get_te_pvalues(base_path, name, is_merged=False, is_isoforms=False, note=None):
 
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}{}.te-pvalues.csv.gz'.format(name, m, n)
+    fn = '{}{}{}{}.te-pvalues.csv.gz'.format(name, m, i, n)
     return os.path.join(base_path, fn)
 
 
 def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, image_type='pdf', note=None):
+        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
 
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}-{}{}{}.te-rpkm-fc.{}'.format(condition_1, m, condition_2, m, n, image_type)
+    fn = '{}{}{}-{}{}{}{}.te-rpkm-fc.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'te-rpkm-fc', fn)
 
 
@@ -882,10 +891,11 @@ def get_transcript_fasta(base_path, name, is_merged=False):
     fn = '{}.transcripts{}.fa'.format(name, m)
     return os.path.join(base_path, 'transcript-index', fn)
 
-def get_translational_efficiency(base_path, condition, is_merged=False, note=None):
+def get_translational_efficiency(base_path, condition, is_merged=False, is_isoforms=False, note=None):
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}{}.translational-efficiency.csv.gz'.format(condition, m, n)
+    fn = '{}{}{}{}.translational-efficiency.csv.gz'.format(condition, m, i, n)
     return os.path.join(base_path, fn)
 
 ### w
