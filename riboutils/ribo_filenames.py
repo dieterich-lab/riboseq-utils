@@ -175,6 +175,11 @@ def get_diff_reg_image_file(base_path, condition_1, condition_2,
     fn = '{}{}{}-{}{}{}{}.diff-reg.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'diff-reg', fn)
 
+def get_dominant_isoforms(base_path, note=None):
+    n = get_note_string(note)
+    fn = "dominant-isoforms{}.csv.gz".format(note)
+    return os.path.join(base_path, fn)
+
 ### e
 # used
 def get_exons(base_path, name, note=None):
