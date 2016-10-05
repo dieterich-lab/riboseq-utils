@@ -985,7 +985,7 @@ def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, st
 
     kl = math_utils.calculate_symmetric_kl_divergence(p, q, math_utils.calculate_univariate_gaussian_kl)
 
-    return kl, p, q
+    return kl
 
 def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition_2, field,
                                    num_random_samples=10000, seed=8675309, use_progress_bar=False):
@@ -997,8 +997,6 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
         np.random.seed(seed)
 
     random_kls = []
-    random_ps = []
-    random_qs = []
         
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -1021,12 +1019,10 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
         iter_range = np.arange(num_random_samples)
 
     for i in iter_range:
-        kl, p, q = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
+        kl = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
         random_kls.append(kl)
-        random_ps.append(p)
-        random_qs.append(q)
-        
-    return random_kls, random_ps, random_qs
+                
+    return random_kls
 
 def get_pvalue(val, kls):
     import numpy as np
@@ -1077,15 +1073,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
                 condition_1, condition_2, field, samples_per_group, group_seed,
                 progress_bar=True, num_groups=num_groups)
    
-    random_ks = utils.flatten_lists(random_kls)
-    random_kls = random_ks[0::3]
-    random_ps = random_ks[1::3]
-    random_qs = random_ks[2::3]
-
-    random_kls = np.concatenate(random_kls)
-    random_ps = np.concatenate(random_ps)
-    random_qs = np.concatenate(random_qs)
-
+    random_kls = utils.flatten_lists(random_kls)
     kls = np.array(sorted(random_kls))
 
     kl_field_name = "{}_{}_{}_kl_divergence".format(field, condition_1, condition_2)
@@ -1093,7 +1081,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
     pvals = kl_field.apply(get_pvalue, args=(kls,))
     
-    return m_filter, pvals, random_kls, random_ps.tolist(), random_qs.tolist()
+    return m_filter, pvals
 
 def get_significant_differences(condition_1, condition_2, pval_df, 
                                 alpha=0.05, min_rpkm_mean=None, max_rpkm_var=None,var_power=None):
