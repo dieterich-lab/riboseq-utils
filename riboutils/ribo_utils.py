@@ -785,6 +785,48 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
 # The following functions are all related. They are used to estimate p-values
 # for the KL-divergence values calculated for translational efficiency (only).
 ###
+
+def get_mean_var_column_names(field, condition):
+    """ This function returns the name of the columns containing the mean and
+        variance for the given field and condition.
+
+        Parameters
+        ----------
+        field : string
+            The name of the field in question. Valid values are:
+                * te
+                * ribo
+                * rna
+
+        condition : string
+            The name of the condition (e.g., "sham.cm")
+
+        Returns
+        -------
+        mean_column : string
+            The name of the column containing the means for this field
+
+        var_column : string
+            The name of the column containing the variances for this field
+    """
+    mean_format_map = {
+        "te": "log_translational_efficiency_loc_{1}",
+        "ribo": "{}_abundance_mean_loc_{}",
+        "rna": "{}_abundance_mean_loc_{}"
+    }
+    
+    var_format_map = {
+        "te": "{}_scale_{}",
+        "ribo": "{}_abundance_var_loc_{}",
+        "rna": "{}_abundance_var_loc_{}"
+    }
+
+    mean_field = mean_format_map[field].format(field, condition)
+    var_field = var_format_map[field].format(field, condition)
+
+    return (mean_field, var_field)
+
+
 def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5):
     import numpy as np
 
@@ -1214,6 +1256,46 @@ def get_significant_differences(condition_1, condition_2, pval_df,
     
     return (m_te_filter, m_rna_filter, m_ribo_filter, m_te_sig, m_rna_sig, m_ribo_sig)
 
+def get_significance_filter(filters, field, significant_only=True):
+    """ This function returns the appropriate mask to filter on significance
+        of the given field. It assumes the filters are in the same order as the
+        output of get_significant_differences.
+
+        Parameters
+        ----------
+            filters : tuple
+                The result of the call to get_significant_differences
+
+            field : string
+                The name of the field on which to filter. Valid options are:
+                    * ribo
+                    * rna
+                    * te
+
+            is_significant : bool
+                Whether to return the "significant" filter (True, default) or 
+                the "basic" filter
+
+        Returns
+        -------
+            significant_only : boolean mask
+                The appropriate mask for filtering for significance based on the
+                given field.
+    """
+
+    # just map from the field to the index of the significant filters
+    index_map = {
+        "te": 0,
+        "rna": 1,
+        "ribo": 2
+    }
+
+    index = index_map[field]
+    if significant_only:
+        index += 3
+
+    return filters[index]
+
 def get_up_and_down_masks(condition_1, condition_2, pval_df):
     """ This function finds all of the transcripts which are, respectively
         higher or lower in the first condition. That is, "up" and "down"
@@ -1260,6 +1342,53 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
     m_ribo_down = ~m_ribo_up
     
     return m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
+
+
+def get_up_down_filter(filters, field, direction):
+    """ This function returns the appropriate mask to filter on the given field
+        in the given direction. It assumes the filters are in the same order as
+        the output of get_up_and_down_masks.
+
+        Parameters
+        ----------
+            filters : tuple
+                The result of the call to get_up_and_down_masks
+
+            field : string
+                The name of the field on which to filter. Valid options are:
+                    * ribo
+                    * rna
+                    * te
+
+            direction : string
+                The direction in which to filter. Valid options are:
+                    * up
+                    * down
+
+        Returns
+        -------
+            significance_mask : boolean mask
+                The appropriate mask for filtering for significance based on the
+                given field.
+    """
+
+    # just map from the field to the index of the significant filters
+    field_map = {
+        "te": 0,
+        "rna": 2,
+        "ribo": 4
+    }
+
+    direction_map = {
+        "up": 0,
+        "down": 1
+    }
+
+    index = field_map[field] + direction_map[direction]
+
+    return filters[index]
+
+
 
 ###
 #   These functions are used for estimating significance (p-values) of the overlap
