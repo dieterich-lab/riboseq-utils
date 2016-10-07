@@ -786,6 +786,31 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
 # for the KL-divergence values calculated for translational efficiency (only).
 ###
 
+field_map = {
+    "ribo": "Riboseq",
+    "rna": "RNA-seq",
+    "te": "Translational Efficiency"
+}
+
+
+def get_field_name(field):
+    """ This function maps from the field to a human-readable name.
+    """
+    
+    return field_map[field]
+
+mean_format_map = {
+    "te": "log_translational_efficiency_loc_{1}",
+    "ribo": "{}_abundance_mean_loc_{}",
+    "rna": "{}_abundance_mean_loc_{}"
+}
+
+var_format_map = {
+    "te": "log_translational_efficiency_scale_{1}",
+    "ribo": "{}_abundance_var_loc_{}",
+    "rna": "{}_abundance_var_loc_{}"
+}
+
 def get_mean_var_column_names(field, condition):
     """ This function returns the name of the columns containing the mean and
         variance for the given field and condition.
@@ -809,23 +834,53 @@ def get_mean_var_column_names(field, condition):
         var_column : string
             The name of the column containing the variances for this field
     """
-    mean_format_map = {
-        "te": "log_translational_efficiency_loc_{1}",
-        "ribo": "{}_abundance_mean_loc_{}",
-        "rna": "{}_abundance_mean_loc_{}"
-    }
     
-    var_format_map = {
-        "te": "{}_scale_{}",
-        "ribo": "{}_abundance_var_loc_{}",
-        "rna": "{}_abundance_var_loc_{}"
-    }
-
     mean_field = mean_format_map[field].format(field, condition)
     var_field = var_format_map[field].format(field, condition)
 
     return (mean_field, var_field)
 
+kl_format_map = {
+    "te": "log_translational_efficiency_{}_{}_kl_divergence",
+    "ribo": "ribo_abundance_{}_{}_kl_divergence",
+    "rna": "rna_abundance_{}_{}_kl_divergence"
+}
+
+pvalue_format_map = {
+    "te": "log_translational_efficiency_{}_{}_pvalue",
+    "ribo": "ribo_abundance_{}_{}_pvalue",
+    "rna": "rna_abundance_{}_{}_pvalue"
+}
+
+
+def get_kl_pvalue_column_name(field, condition_1, condition_2):
+    """ This function returns the names of the columns containing the estimated
+        KL-divergence and pvalues for the two conditions and field.
+
+        Parameters
+        ----------
+        field : string
+            The name of the field in question. Valid values are:
+                * te
+                * ribo
+                * rna
+
+        condition_{1,2} : string
+            The name of the condition (e.g., "sham.cm")
+
+        Returns
+        -------
+        kl_column : string
+            The name of the column containing the KL-divergence for this field
+
+        pvalue_column : string
+            The name of the column containing the means-values for this field
+    """
+    
+    kl_field = kl_format_map[field].format(condition_1, condition_2)
+    pvalue_field = pvalue_format_map[field].format(condition_1, condition_2)
+
+    return (kl_field, pvalue_field)
 
 def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5):
     import numpy as np
