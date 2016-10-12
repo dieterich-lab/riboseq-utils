@@ -1,6 +1,8 @@
 import glob
 import os
 
+import misc.utils as utils
+
 ### parameterized names
 
 def get_cds_only_string(is_cds_only):
@@ -268,6 +270,30 @@ def get_motif_analysis_results(base, condition_1, condition_2, criterion,
     result_file = os.path.join(folder, "ame.txt")
     return result_file
 
+def get_motif_fimo_folder(base, condition_1, condition_2, criterion, direction,
+        sequence_type, motifs):
+
+    base_folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
+        criterion, sequence_type)
+
+    motifs_name = utils.get_basename(motifs)
+
+    fimo_folder = "{}.{}-{}.{}.{}".format(condition_2, criterion, direction, 
+        sequence_type, motifs_name)
+    fimo_folder = os.path.join(base_folder, fimo_folder)
+    return fimo_folder
+
+
+def get_motif_fimo_results(base, condition_1, condition_2, criterion, direction,
+        sequence_type, motifs):
+   
+    fimo_folder = get_motif_fimo_folder(base, condition_1, condition_2, criterion, 
+        direction, sequence_type, motifs)
+    result_file = os.path.join(fimo_folder, "fimo.txt")
+
+    return result_file
+
+    
 def get_motif_sequences(base, condition_1, condition_2, criterion, direction, sequence_type):
     folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
         criterion, sequence_type)
@@ -808,6 +834,11 @@ def get_rnaseq_bitseq_rpkm_mean(rnaseq_base, name, length=None, is_unique=False,
     s = s + ".rpkm.mean"
     return s
 
+# used
+def get_rpbp_prediction_report(base_path, note):
+    n = get_note_string(note)
+    fn = "prediction-report{}.tex".format(n)
+    return os.path.join(base_path, fn)
 
 # used
 def get_rpkm_image_file(base_path, condition, is_merged=False, is_isoforms=False, image_type='pdf', note=None):
