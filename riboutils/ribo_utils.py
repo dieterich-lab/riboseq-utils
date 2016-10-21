@@ -1236,6 +1236,7 @@ def get_significant_differences(condition_1, condition_2, pval_df,
             numpy
 
     """
+    import numpy as np
     
     te_kl_field = "log_translational_efficiency_{}_{}_kl_divergence".format(condition_1, condition_2)
     
@@ -1309,7 +1310,10 @@ def get_significant_differences(condition_1, condition_2, pval_df,
     m_rna_sig = (pval_df[rna_pval_field] < alpha) & m_rna_filter
     m_ribo_sig = (pval_df[ribo_pval_field] < alpha) & m_ribo_filter
     
-    return (m_te_filter, m_rna_filter, m_ribo_filter, m_te_sig, m_rna_sig, m_ribo_sig)
+    filters = (m_te_filter, m_rna_filter, m_ribo_filter, m_te_sig, m_rna_sig, m_ribo_sig)
+
+    filters= [ np.array(f) for f in filters ]
+    return filters
 
 def get_significance_filter(filters, field, significant_only=True):
     """ This function returns the appropriate mask to filter on significance
@@ -1378,6 +1382,8 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
                 riboseq RPKM in the first condition, respectively.
 
     """
+    import numpy as np
+
     te_1 = 'log_translational_efficiency_loc_{}'.format(condition_1)
     te_2 = 'log_translational_efficiency_loc_{}'.format(condition_2)
     
@@ -1396,7 +1402,9 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
     m_ribo_up = pval_df[ribo_1] > pval_df[ribo_2]
     m_ribo_down = ~m_ribo_up
     
-    return m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
+    up_down_masks = m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
+    up_down_masks = [ np.array(f) for f in up_down_masks ]
+    return up_down_masks
 
 
 def get_up_down_filter(filters, field, direction):
