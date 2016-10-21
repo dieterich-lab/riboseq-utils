@@ -882,6 +882,67 @@ def get_kl_pvalue_column_name(field, condition_1, condition_2):
 
     return (kl_field, pvalue_field)
 
+log_fold_change_map = {
+    "te": "log_translational_efficiency_{}_{}_log_fold_change",
+    "ribo": "ribo_abundance_{}_{}_log_fold_change",
+    "rna": "rna_abundance_{}_{}_log_fold_change"
+}
+
+def get_log_fold_change_field_name(field, condition_1, condition_2):
+    lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+    return lfc_field
+
+def get_log_fold_changes(df, condition_pairs):
+    """ This function creates a new data frame which includes all of the log
+        fold changes (TE, riboseq and RNA-seq) for each of the condition
+        pairs in the given list.
+
+        The returned data frame could be joined to the original df with a
+        command like:
+
+        pd.concat([df, log_fold_changes_df], axis=1)
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+            A data frame containing the "mean" fields
+
+        condition_pairs : list of 2-tuple-likes of strings
+            The pairs of conditions for which the log fold changes will be
+            included in the returns data frame
+
+        Returns
+        -------
+        log_fold_changes_df : pd.DataFrame
+            A data frame containing all of the requested log fold changes
+    """
+    import numpy as np
+    import pandas as pd
+    
+    log_fold_changes_df = pd.DataFrame()
+
+    for (condition_1, condition_2) in condition_pairs:
+        
+        field = 'te'
+        field_1 = mean_format_map[field].format(field, condition_1)
+        field_2 = mean_format_map[field].format(field, condition_2)
+        lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+        log_fold_changes_df[lfc_field] = df[field_2] - df[field_1]
+        
+        field = 'ribo'
+        field_1 = mean_format_map[field].format(field, condition_1)
+        field_2 = mean_format_map[field].format(field, condition_2)
+        lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+        log_fold_changes_df[lfc_field] = np.log(df[field_2]) - np.log(df[field_1])
+        
+        field = 'rna'
+        field_1 = mean_format_map[field].format(field, condition_1)
+        field_2 = mean_format_map[field].format(field, condition_2)
+        lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+        log_fold_changes_df[lfc_field] = np.log(df[field_2]) - np.log(df[field_1])
+               
+    return log_fold_changes_df
+
 def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5):
     import numpy as np
 
