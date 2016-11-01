@@ -555,6 +555,19 @@ def get_riboseq_bitseq_rpkm_mean(riboseq_base, name, length=None, is_unique=Fals
     s = s + ".rpkm.mean"
     return s
 
+# c
+def get_riboseq_cell_type_protein(riboseq_base, name, length=None, offset=None, is_unique=False, 
+        is_cds_only=False, is_transcriptome=False, is_chisq=False, is_smooth=False, fraction=None, 
+        reweighting_iterations=None,is_filtered=False, note=None):
+    
+    s = get_riboseq_base(riboseq_base, name, 'cell-types', length=length, offset=offset, 
+        is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
+        is_smooth=is_smooth, fraction=fraction, reweighting_iterations=reweighting_iterations,  
+        is_chisq=is_chisq, is_filtered=is_filtered, note=note)
+    s = s + ".predicted-orfs.protein.fa"
+    return s
+
+
 # f
 def get_riboseq_fastq(riboseq_data, name):
     return os.path.join(riboseq_data, 'raw-data', '{}.fastq.gz'.format(name))
@@ -582,12 +595,14 @@ def get_metagene_profile_bayes_factor_image(riboseq_base, name, image_type='eps'
 # p
 
 # used
-def get_riboseq_peptide_matches(riboseq_base, name, length=None, offset=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, is_chisq=False, note=None):
+def get_riboseq_peptide_matches(riboseq_base, name, peptide_name, length=None, offset=None, is_unique=False, 
+        is_cds_only=False, is_transcriptome=False, is_chisq=False, is_filtered=False, note=None):
     
-    s = get_riboseq_base(riboseq_base, name, 'peptide-matches', length=length, offset=offset, 
+    n = "{}-{}".format(name, peptide_name)
+
+    s = get_riboseq_base(riboseq_base, n, 'peptide-matches', length=length, offset=offset, 
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, 
-        is_chisq=is_chisq, note=note)
+        is_chisq=is_chisq, is_filtered=is_filtered, note=note)
     s = s + ".peptide-matches.csv.gz"
     return s
 
