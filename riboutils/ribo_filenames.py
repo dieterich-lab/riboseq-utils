@@ -5,6 +5,12 @@ import misc.utils as utils
 
 ### parameterized names
 
+def get_canonical_string(is_canonical):
+    canonical = ""
+    if is_canonical:
+        canonical = ".canonical"
+    return canonical
+
 def get_cds_only_string(is_cds_only):
     cds_only = ""
     if is_cds_only:
@@ -184,9 +190,10 @@ def get_dominant_isoforms(base_path, note=None):
 
 ### e
 # used
-def get_exons(base_path, name, note=None):
+def get_exons(base_path, name, is_canonical=False, note=None):
     note_str = get_note_string(note)
-    fn = '{}.orfs-exons{}.bed.gz'.format(name, note_str)
+    c = get_canonical_string(is_canonical)
+    fn = '{}.orfs-exons{}{}.bed.gz'.format(name, c, note_str)
     return os.path.join(base_path, 'transcript-index', fn)
  
 
