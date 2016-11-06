@@ -1,5 +1,11 @@
 from setuptools import setup
 
+console_scripts = [
+    'extract-metagene-profiles=riboutils.extract_metagene_profiles:main',
+    'estimate-metagene-profile-bayes-factors=riboutils.estimate_metagene_profile_bayes_factors:main',
+    'select-periodic-offsets=riboutils.select_periodic_offsets:main'
+]
+
 def readme():
     with open('README.md') as f:
         return f.read()
@@ -29,11 +35,7 @@ setup(name='riboutils',
         test_suite='nose.collector',
         tests_require=['nose'],
         entry_points = {
-            'console_scripts': [
-                'extract-metagene-profiles=riboutils.extract_metagene_profiles:main',
-                'estimate-metagene-profile-bayes-factors=riboutils.estimate_metagene_profile_bayes_factors:main',
-                'select-periodic-offsets=riboutils.select_periodic_offsets:main'                                
-                               ]
+            'console_scripts': console_scripts
         },
         zip_safe=False
-        )
+)
