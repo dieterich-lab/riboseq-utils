@@ -1666,3 +1666,88 @@ def get_mackowiak_background(batch, num_random_samples,
         ret[i] = num_exact_matches
         
     return ret
+
+def get_overlap_data_frame(unique_file, multimappers_file):
+    import pandas as pd
+    import misc.bio_utils.bed_utils as bed_utils
+
+    msg = "Reading predictions with unique mappers"
+    logger.info(msg)
+    unique = bed_utils.read_bed(unique_file)
+
+    msg = "Reading predictions with multimappers"
+    logger.info(msg)
+    multimappers = bed_utils.read_bed(multimappers_file)
+
+    msg = "Splitting predictions with multimappers"
+    logger.info(msg)
+    multimappers_exons = bed_utils.split_bed12(multimappers)
+
+    msg = "Splitting predictions with unique mappers"
+    logger.info(msg)
+    unique_exons = bed_utils.split_bed12(unique)
+
+    msg = "Finding overlap"
+    logger.info(msg)
+    overlap = bed_utils.get_bed_overlaps(unique, multimappers, 
+        exons_a=unique_exons, exons_b=multimappers_exons)
+
+    msg = "Constructing data frame with overlaps and ORFs from each prediction set"
+    logger.info(msg)
+
+    unique_with_overlap = {o.a_info for o in overlap}
+    multimapper_with_overlap = {o.b_info for o in overlap}
+
+    overlap_df = pd.DataFrame(overlap)
+    overlap_df = overlap_df.rename(columns={
+        "a_fraction":"Unique Coverage", "b_fraction": "Multimapper Coverage"
+    })
+    overlap_df['category'] = 'overlap'
+
+    m_unique_with_overlap = unique['id'].isin(unique_with_overlap)
+    m_multimapper_with_overlap = multimappers['id'].isin(multimapper_with_overlap)
+
+    unique_no_overlap = unique.loc[~m_unique_with_overlap, 'id']
+    multimapper_no_overlap = multimappers.loc[~m_multimapper_with_overlap, 'id']
+
+    unique_df = pd.DataFrame()
+    unique_df['a_info'] = unique_no_overlap
+    unique_df['b_info'] = ""
+    unique_df['overlap'] = 0
+    unique_df['Unique Coverage'] = 0
+    unique_df['Multimapper Coverage'] = 0
+    unique_df['category'] = 'unique_only'
+
+    multimapper_df = pd.DataFrame()
+    multimapper_df['a_info'] = ""
+    multimapper_df['b_info'] = multimapper_no_overlap
+    multimapper_df['overlap'] = 0
+    multimapper_df['Unique Coverage'] = 0
+    multimapper_df['Multimapper Coverage'] = 0
+    multimapper_df['category'] = 'multimapper_only'
+    joined_df = pd.concat([overlap_df, unique_df, multimapper_df])
+
+    msg = "Adding expression, etc., to data frame"
+    logger.info(msg)
+
+    joined_df = joined_df.merge(unique, left_on="a_info", right_on="id", 
+        suffixes=['', '_unique'], how='left')
+
+    to_rename = {c: "{}_unique".format(c) for c in unique.columns}
+    joined_df = joined_df.rename(columns=to_rename)
+
+    joined_df = joined_df.merge(multimappers, left_on="b_info", right_on="id", 
+        suffixes=['', '_multimappers'], how='left')
+
+    to_rename = {c: "{}_multimappers".format(c) for c in multimappers.columns}
+    joined_df = joined_df.rename(columns=to_rename)
+
+    ui = joined_df['x_1_sum_unique'].divide(joined_df['profile_sum_unique']) 
+    joined_df['inframe_unique'] = ui
+
+    mi = joined_df['x_1_sum_multimappers'].divide(joined_df['profile_sum_multimappers'])
+    joined_df['inframe_multimappers'] = mi
+
+    joined_df = joined_df.fillna(0)
+
+    return joined_df
