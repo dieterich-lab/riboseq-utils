@@ -5,11 +5,11 @@ import misc.utils as utils
 
 ### parameterized names
 
-def get_canonical_string(is_canonical):
-    canonical = ""
-    if is_canonical:
-        canonical = ".canonical"
-    return canonical
+def get_annotated_string(is_annotated):
+    annotated = ""
+    if is_annotated:
+        annotated = ".annotated"
+    return annotated
 
 def get_cds_only_string(is_cds_only):
     cds_only = ""
@@ -22,6 +22,12 @@ def get_chisq_string(is_chisq):
     if is_chisq:
         chisq = ".chisq"
     return chisq
+
+def get_de_novo_string(is_de_novo):
+    de_novo = ""
+    if is_de_novo:
+        de_novo = ".de-novo"
+    return de_novo
 
 def get_fastqc_name(filename):
     """ Given the sequence or alignment filename, this function extracts the name
@@ -141,9 +147,11 @@ def get_transcriptome_string(is_transcriptome):
 
 ### b
 
-def get_bed(base_path, name, is_merged=False):
+def get_bed(base_path, name, is_merged=False, is_annotated=False, is_de_novo=False):
     m = get_merged_string(is_merged)
-    fn = '{}{}.bed.gz'.format(name, m)
+    c = get_annotated_string(is_annotated)
+    d = get_de_novo_string(is_de_novo)
+    fn = '{}{}{}{}.bed.gz'.format(name, m, c, d)
     return os.path.join(base_path, fn)
 
 
@@ -190,10 +198,11 @@ def get_dominant_isoforms(base_path, note=None):
 
 ### e
 # used
-def get_exons(base_path, name, is_canonical=False, note=None):
+def get_exons(base_path, name, is_annotated=False, is_de_novo=False, note=None):
     note_str = get_note_string(note)
-    c = get_canonical_string(is_canonical)
-    fn = '{}.orfs-exons{}{}.bed.gz'.format(name, c, note_str)
+    c = get_annotated_string(is_annotated)
+    d = get_de_novo_string(is_de_novo)
+    fn = '{}.orfs-exons{}{}{}.bed.gz'.format(name, c, d, note_str)
     return os.path.join(base_path, 'transcript-index', fn)
  
 
@@ -311,9 +320,11 @@ def get_motif_sequences(base, condition_1, condition_2, criterion, direction, se
 
 ### o
 # used
-def get_orfs(base_path, name, note=None):
+def get_orfs(base_path, name, is_annotated=False, is_de_novo=False, note=None):
     note_str = get_note_string(note)
-    fn = '{}.genomic-orfs{}.bed.gz'.format(name, note_str)
+    c = get_annotated_string(is_annotated)
+    d = get_de_novo_string(is_de_novo)
+    fn = '{}.genomic-orfs{}{}{}.bed.gz'.format(name, c, d, note_str)
     return os.path.join(base_path, 'transcript-index', fn)
 
 
@@ -944,9 +955,11 @@ def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2,
     return os.path.join(base_path, 'plots', 'te-rpkm-fc', fn)
 
 
-def get_transcript_fasta(base_path, name, is_merged=False):
+def get_transcript_fasta(base_path, name, is_merged=False, is_annotated=False, is_de_novo=False):
     m = get_merged_string(is_merged)
-    fn = '{}.transcripts{}.fa'.format(name, m)
+    c = get_annotated_string(is_annotated)
+    d = get_de_novo_string(is_de_novo)
+    fn = '{}.transcripts{}{}{}.fa'.format(name, m, c, d)
     return os.path.join(base_path, 'transcript-index', fn)
 
 def get_translational_efficiency(base_path, condition, is_merged=False, is_isoforms=False, note=None):

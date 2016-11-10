@@ -401,6 +401,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
     ends = np.zeros(num_alignments, dtype=int)
     seqs = [""] * num_alignments
     strands = ["+"] * num_alignments
+    fractions = np.zeros(num_alignments, dtype=float)
 
     al_iter = tqdm.tqdm(alignments, leave=True, file=sys.stdout, total=num_alignments)
     for i, a in enumerate(al_iter):
