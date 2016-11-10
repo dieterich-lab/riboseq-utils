@@ -147,11 +147,14 @@ def get_transcriptome_string(is_transcriptome):
 
 ### b
 
-def get_bed(base_path, name, is_merged=False, is_annotated=False, is_de_novo=False):
+def get_bed(base_path, name, is_merged=False, is_annotated=False, 
+        is_de_novo=False, is_cds_only=False):
+
     m = get_merged_string(is_merged)
     c = get_annotated_string(is_annotated)
     d = get_de_novo_string(is_de_novo)
-    fn = '{}{}{}{}.bed.gz'.format(name, m, c, d)
+    cds = get_cds_only_string(is_cds_only)
+    fn = '{}{}{}{}{}.bed.gz'.format(name, m, c, d, cds)
     return os.path.join(base_path, fn)
 
 
@@ -208,9 +211,12 @@ def get_exons(base_path, name, is_annotated=False, is_de_novo=False, note=None):
 
 ### g
 
-def get_gtf(base_path, name, is_merged=False):
+def get_gtf(base_path, name, is_de_novo=False, is_annotated=False, is_merged=False, is_cds_only=False):
+    c = get_annotated_string(is_annotated)
     m = get_merged_string(is_merged)
-    fn = '{}{}.gtf'.format(name, m)
+    cds = get_cds_only_string(is_cds_only)
+    d = get_de_novo_string(is_de_novo)
+    fn = '{}{}{}{}{}.gtf'.format(name, m, c, d, cds)
     return os.path.join(base_path, fn)
 
 ### m
@@ -955,11 +961,14 @@ def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2,
     return os.path.join(base_path, 'plots', 'te-rpkm-fc', fn)
 
 
-def get_transcript_fasta(base_path, name, is_merged=False, is_annotated=False, is_de_novo=False):
+def get_transcript_fasta(base_path, name, is_merged=False, is_annotated=False, 
+        is_de_novo=False, is_cds_only=False):
+
     m = get_merged_string(is_merged)
     c = get_annotated_string(is_annotated)
     d = get_de_novo_string(is_de_novo)
-    fn = '{}.transcripts{}{}{}.fa'.format(name, m, c, d)
+    cds = get_cds_only_string(is_cds_only)
+    fn = '{}.transcripts{}{}{}{}.fa'.format(name, m, c, d, cds)
     return os.path.join(base_path, 'transcript-index', fn)
 
 def get_translational_efficiency(base_path, condition, is_merged=False, is_isoforms=False, note=None):
