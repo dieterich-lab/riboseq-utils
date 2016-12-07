@@ -331,7 +331,7 @@ def get_raw_data_fastqc_data(base_path, filename):
 def get_ribodiff_base(base, condition_1, condition_2, is_unique=False):
     unique = get_unique_string(is_unique)
     subfolder = "{}_{}{}".format(condition_1, condition_2, unique)
-    return os.path.join(base, subfolder, "{}_{}".format(condition_1, condition_2))
+    return os.path.join(base, 'ribodiff', subfolder, "{}_{}".format(condition_1, condition_2))
 
 def get_ribodiff_design(base, condition_1, condition_2, is_unique=False):
     base = get_ribodiff_base(base, condition_1, condition_2, is_unique=is_unique)
