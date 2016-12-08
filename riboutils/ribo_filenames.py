@@ -598,10 +598,11 @@ def get_riboseq_fastq(riboseq_data, name):
 
 # m
 
-def get_riboseq_metagene_profile_image(riboseq_base, name, image_type='eps', 
+def get_metagene_profile_image(base, name, image_type='eps', is_merged=False, is_isoforms=False,
         length=None, is_unique=False, is_cds_only=False, is_transcriptome=False, note=None):
 
-    s = get_riboseq_base(riboseq_base, name, 'metagene-profiles', length=length, 
+    s = get_riboseq_base(base, name, 'metagene-profiles', length=length, 
+        is_merged=is_merged, is_isoforms=is_isoforms,
         is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome, note=note)
     s = s + "." + image_type
     return s
