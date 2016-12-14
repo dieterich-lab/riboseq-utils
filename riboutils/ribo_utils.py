@@ -855,35 +855,63 @@ pvalue_format_map = {
     "rna": "rna_abundance_{}_{}_pvalue"
 }
 
-
 def get_kl_pvalue_column_name(field, condition_1, condition_2):
     """ This function returns the names of the columns containing the estimated
         KL-divergence and pvalues for the two conditions and field.
 
-        Parameters
-        ----------
-        field : string
-            The name of the field in question. Valid values are:
-                * te
-                * ribo
-                * rna
+    Parameters
+    ----------
+    field : string
+        The name of the field in question. Valid values are:
+            * te
+            * ribo
+            * rna
 
-        condition_{1,2} : string
-            The name of the condition (e.g., "sham.cm")
+    condition_{1,2} : string
+        The name of the condition (e.g., "sham.cm")
 
-        Returns
-        -------
-        kl_column : string
-            The name of the column containing the KL-divergence for this field
+    Returns
+    -------
+    kl_column : string
+        The name of the column containing the KL-divergence for this field
 
-        pvalue_column : string
-            The name of the column containing the means-values for this field
+    pvalue_column : string
+        The name of the column containing the means-values for this field
     """
     
     kl_field = kl_format_map[field].format(condition_1, condition_2)
     pvalue_field = pvalue_format_map[field].format(condition_1, condition_2)
 
     return (kl_field, pvalue_field)
+
+significant_pvalue_format_map = {
+    "te": "significant_te_{}_{}",
+    "ribo": "significant_ribo_{}_{}",
+    "rna": "significant_rna_{}_{}"
+}
+
+def get_significant_pvalue_column_name(field, condition_1, condition_2):
+    """ Column name indicating the specified estimates significantly differ
+
+    Parameters
+    ----------
+    field : string
+        The name of the field in question. Valid values are:
+            * te
+            * ribo
+            * rna
+
+    condition_{1,2} : string
+        The name of the conditions (e.g., "sham.cm")
+
+    Returns
+    -------
+    significant_column: string
+        Name of the column indicating significance
+    """
+    sig_pval_col = significant_pvalue_format_map[field]
+    sig_pval_col = sig_pval_col.format(condition_1, condition_2)
+    return sig_pval_col
 
 log_fold_change_map = {
     "te": "log_translational_efficiency_{}_{}_log_fold_change",
@@ -900,24 +928,24 @@ def get_log_fold_changes(df, condition_pairs):
         fold changes (TE, riboseq and RNA-seq) for each of the condition
         pairs in the given list.
 
-        The returned data frame could be joined to the original df with a
-        command like:
+    The returned data frame could be joined to the original df with a
+    command like:
 
-        pd.concat([df, log_fold_changes_df], axis=1)
+    pd.concat([df, log_fold_changes_df], axis=1)
 
-        Parameters
-        ----------
-        df : pd.DataFrame
-            A data frame containing the "mean" fields
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A data frame containing the "mean" fields
 
-        condition_pairs : list of 2-tuple-likes of strings
-            The pairs of conditions for which the log fold changes will be
-            included in the returns data frame
+    condition_pairs : list of 2-tuple-likes of strings
+        The pairs of conditions for which the log fold changes will be
+        included in the returns data frame
 
-        Returns
-        -------
-        log_fold_changes_df : pd.DataFrame
-            A data frame containing all of the requested log fold changes
+    Returns
+    -------
+    log_fold_changes_df : pd.DataFrame
+        A data frame containing all of the requested log fold changes
     """
     import numpy as np
     import pandas as pd
