@@ -913,6 +913,20 @@ def get_significant_pvalue_column_name(field, condition_1, condition_2):
     sig_pval_col = sig_pval_col.format(condition_1, condition_2)
     return sig_pval_col
 
+def get_micropeptide_overlap_column_name(condition):
+    """ Column name indicating an overlap with a micropeptide
+
+    Parameters
+    ----------
+    condition: string
+        The name of the condition (e.g., "sham.cm")
+
+    Returns
+    -------
+        Name of the column indicating an overlap
+    """
+    return "has_micropeptide_overlap_{}".format(condition)
+
 log_fold_change_map = {
     "te": "log_translational_efficiency_{}_{}_log_fold_change",
     "ribo": "ribo_abundance_{}_{}_log_fold_change",
