@@ -107,6 +107,24 @@ def get_matching_conditions(config):
     
     return matching_conditions
 
+def get_criterion_condition(condition, criterion, config):
+    matching_conditions = get_matching_conditions(config)
+    if condition not in matching_conditions:
+        msg = ("[ribo_utils.get_criterion_condition]: Could not find '{}' in "
+            "'matching_conditions".format(condition))
+        raise ValueError(msg)
+
+    ribo, rna = matching_conditions[condition]
+
+    if criterion == "ribo":
+        return ribo
+    elif criterion == "rna":
+        return rna
+    else:
+        msg = ("[ribo_utils.get_criterion_condition]: The criterion '{}' is "
+            "not a valid criterion.".format(criterion))
+        raise ValueError(msg)
+
 def get_riboseq_cell_type_samples(config):
     if 'riboseq_cell_type_samples' in config:
         if config['riboseq_cell_type_samples'] is not None:
