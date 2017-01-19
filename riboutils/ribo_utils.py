@@ -143,6 +143,39 @@ def get_rnaseq_cell_type_samples(config):
     return cell_type_samples
 
 
+def filter_condition_pairs(config, allowed_conditions):
+    """ Create an iterator which yields only condition pairs for which both 
+    conditions appear in the allowed_conditions.
+
+    Parameters
+    ----------
+    config: dict (presumably loaded from a yaml config file)
+        A configuration dictionary which *must* include comparison_conditions
+
+    allowed_conditions: sequence or None
+        The conditions we care about. If None or the length is 0, then none of
+        the condition pairs are filtered (all are "yield"ed).
+
+    Yields
+    ------
+    condition_pair: 2-tuple of strings
+        The next condition pair which meets the filtering criteria
+    """
+    import misc.utils as utils
+
+    condition_pairs = config['comparison_conditions']
+
+    if (allowed_conditions is not None) and (len(allowed_conditions) > 0):
+        allowed_conditions = set(allowed_conditions)
+    else:
+        allowed_conditions = set(utils.flatten_lists(condition_pairs))
+
+    for cp in condition_pairs:
+        if (cp[0] in allowed_conditions) and (cp[1] in allowed_conditions):
+            yield cp
+
+
+
 ###
 #
 # This function is used to extract the lengths and offsets which count as
