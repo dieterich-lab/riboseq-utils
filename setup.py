@@ -3,7 +3,8 @@ from setuptools import setup
 console_scripts = [
     'extract-metagene-profiles=riboutils.extract_metagene_profiles:main',
     'estimate-metagene-profile-bayes-factors=riboutils.estimate_metagene_profile_bayes_factors:main',
-    'select-periodic-offsets=riboutils.select_periodic_offsets:main'
+    'select-periodic-offsets=riboutils.select_periodic_offsets:main',
+    'bootstrap-ribo-analysis=riboutils.bootstrap_ribo_analysis:main'
 ]
 
 def readme():
