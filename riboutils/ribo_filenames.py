@@ -262,8 +262,11 @@ def get_default_models_base(project="rpbp_models"):
 
 
 def get_models(models_base, model_type):
+    import shlex
+
     path_ex = os.path.join(models_base, model_type, '*pkl')
     models = glob.glob(path_ex)
+    models = [shlex.quote(m) for m in models]
     return models
 
 # used
