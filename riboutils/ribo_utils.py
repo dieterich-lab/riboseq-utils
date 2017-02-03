@@ -27,6 +27,27 @@ orf_type_labels_mapping = {
     'other': ['five_prime_overlap', 'suspect_overlap', 'three_prime_overlap', 'within']
 }
 
+orf_type_display_name_map = {
+    'canonical': "Canonical", 
+    'canonical_extended': "Canonical extended", 
+    'canonical_truncated': "Canonical truncated", 
+    'five_prime': "uORF", 
+    'three_prime': "dORF", 
+    'noncoding': "ncRNA", 
+    'five_prime_overlap': "uORF overlap",
+    'suspect_overlap': "Suspect", 
+    'three_prime_overlap': "dORF overlap", 
+    'within': "Within",
+    'novel_canonical_extended': "de novo canonical extended", 
+    'novel_five_prime': "de novo uORF", 
+    'novel_three_prime': "de novo dORF", 
+    'novel_noncoding': "de novo ncRNA", 
+    'novel_five_prime_overlap': "de novo uORF overlap",
+    'novel_suspect_overlap': "de novo suspect", 
+    'novel_three_prime_overlap': "de novo dORF overlap", 
+    'novel_within': "de novo within",
+}
+
 ###
 #   The following functions are helpful for parsing information out of the identifiers.
 ###
@@ -159,6 +180,26 @@ def get_rnaseq_cell_type_samples(config):
         x: [x] for x in rnaseq_replicates
     }
     return cell_type_samples
+
+def get_sample_name_map(config):
+    """ Extract the mapping from the '{ribo,rna}seq_sample_name_map', or create
+    a default one for all samples without an entry.
+    """
+
+    class mydict(dict):
+        def __missing__(self,key):
+            return key
+
+    sample_name_map = mydict()
+
+    if 'riboseq_sample_name_map' in config:
+        sample_name_map.update(config['riboseq_sample_name_map'])
+
+    if 'rnaseq_sample_name_map' in config:
+        sample_name_map.update(config['rnaseq_sample_name_map'])
+
+    return sample_name_map
+
 
 
 def filter_condition_pairs(config, allowed_conditions):
