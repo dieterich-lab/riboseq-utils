@@ -6,17 +6,15 @@ import riboutils.ribo_filenames as filenames
 
 logger = logging.getLogger(__name__)
 
+
+class _return_key_dict(dict):
+    def __missing__(self,key):
+        return key
+
+
 ###
 #   The following labels are used to group similar ORF types.
 ###
-orf_types = ['canonical', 'canonical_extended', 'canonical_truncated', 
-    'five_prime', 'three_prime', 'noncoding', 'novel', 'five_prime_overlap',
-    'suspect_overlap', 'three_prime_overlap', 'within']
-
-
-orf_type_labels = ['canonical', 'canonical_variant', 'five_prime', 
-    'three_prime', 'noncoding', 'other', 'novel']
-
 orf_type_labels_mapping = {
     'canonical': ['canonical'],
     'canonical_variant': ['canonical_extended', 'canonical_truncated'],
@@ -24,7 +22,36 @@ orf_type_labels_mapping = {
     'three_prime': ['three_prime'],
     'noncoding': ['noncoding'],
     'novel': ['novel'],
-    'other': ['five_prime_overlap', 'suspect_overlap', 'three_prime_overlap', 'within']
+    'other': [
+        'five_prime_overlap', 
+        'suspect_overlap', 
+        'three_prime_overlap', 
+        'within'
+    ],
+    'novel_overlap': [
+        'novel_canonical', 
+        'novel_canonical_extended', 
+        'novel_canonical_truncated', 
+        'novel_five_prime', 
+        'novel_three_prime', 
+        'novel_noncoding', 
+        'novel_novel', 
+        'novel_five_prime_overlap',
+        'novel_suspect_overlap', 
+        'novel_three_prime_overlap', 
+        'novel_within'
+    ]
+}
+
+orf_type_labels_display_name_map = {
+    'canonical': "Canonical",
+    'canonical_variant': "Canonical variant",
+    'five_prime': "uORF",
+    'three_prime': "dORF",
+    'noncoding': "ncRNA",
+    'novel': "de novo only",
+    'other': "Other",
+    'novel_overlap': "de novo overlap"
 }
 
 orf_type_display_name_map = {
@@ -38,6 +65,7 @@ orf_type_display_name_map = {
     'suspect_overlap': "Suspect", 
     'three_prime_overlap': "dORF overlap", 
     'within': "Within",
+    "novel": "de novo only",
     'novel_canonical_extended': "de novo canonical extended", 
     'novel_five_prime': "de novo uORF", 
     'novel_three_prime': "de novo dORF", 
@@ -47,6 +75,9 @@ orf_type_display_name_map = {
     'novel_three_prime_overlap': "de novo dORF overlap", 
     'novel_within': "de novo within",
 }
+
+orf_type_labels = list(orf_type_labels_mapping.keys())
+orf_types = list(orf_type_display_name_map.keys())
 
 ###
 #   The following functions are helpful for parsing information out of the identifiers.
@@ -86,6 +117,19 @@ def get_riboseq_replicates(config):
         name: [name] for name, sample in config['riboseq_samples'].items()
     }
     return ret
+
+def get_riboseq_replicate_name_map(config):
+    """ Extract the pretty names for the riboseq replicates, if they are given
+    in the config. All other names are returned unchanged.
+    """
+
+    riboseq_replicate_name_map = _return_key_dict()
+
+    if 'riboseq_replicate_name_map' in config:
+        riboseq_replicate_name_map.update(config['riboseq_replicate_name_map'])
+
+    return riboseq_replicate_name_map
+
 
 def get_rnaseq_replicates(config):
     if 'rnaseq_biological_replicates' in config:
@@ -186,11 +230,7 @@ def get_sample_name_map(config):
     a default one for all samples without an entry.
     """
 
-    class mydict(dict):
-        def __missing__(self,key):
-            return key
-
-    sample_name_map = mydict()
+    sample_name_map = _return_key_dict()
 
     if 'riboseq_sample_name_map' in config:
         sample_name_map.update(config['riboseq_sample_name_map'])
