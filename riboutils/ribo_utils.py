@@ -43,6 +43,10 @@ orf_type_labels_mapping = {
     ]
 }
 
+orf_type_labels_reverse_mapping = {
+    v:k for k, l in orf_type_labels_mapping.items() for v in l
+}
+
 orf_type_labels_display_name_map = {
     'canonical': "Canonical",
     'canonical_variant': "Canonical variant",
