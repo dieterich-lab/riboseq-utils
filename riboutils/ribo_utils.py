@@ -211,8 +211,9 @@ def get_matching_condition_and_replicates(condition:str, config:dict,
     # make sure the matching_condition exists
     matching_conditions = get_matching_conditions(config)
     if condition not in matching_conditions:
-        msg = ("Could not find \"{}\" in matching_conditions. Please ensure "
-            "the name is spelled correctly.".format(condition))
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: Could not "
+            "find \"{}\" in matching_conditions. Please ensure the name is "
+            "spelled correctly.".format(condition))
 
         if raise_on_error:
             raise ValueError(msg)
@@ -224,10 +225,11 @@ def get_matching_condition_and_replicates(condition:str, config:dict,
     cond = matching_conditions[condition]
 
     if len(cond) != 2:
-        msg = ("A set of matching conditions is ill-formed. Each set of "
-            "matching conditions must be a 2-tuple. This first condition "
-            "should be the riboseq condition, and the second should be the "
-            "rnaseq condition. '{}: {}'".format(condition, cond))
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: A set of "
+            "matching conditions is ill-formed. Each set of matching "
+            "conditions must be a 2-tuple. This first condition should be the "
+            "riboseq condition, and the second should be the rnaseq "
+            "condition. '{}: {}'".format(condition, cond))
 
         if raise_on_error:
             raise ValueError(msg)
@@ -238,11 +240,12 @@ def get_matching_condition_and_replicates(condition:str, config:dict,
     ribo_condition = cond[0]
     rna_condition = cond[1]
 
-    riboseq_biological_replicates = ribo_utils.get_riboseq_replicates(config)
-    rnaseq_biological_replicates = ribo_utils.get_rnaseq_replicates(config)
+    riboseq_biological_replicates = get_riboseq_replicates(config)
+    rnaseq_biological_replicates = get_rnaseq_replicates(config)
 
     if ribo_condition not in riboseq_biological_replicates:
-        msg = ("The riboseq condition '{}' is not present in the "
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: The "
+            "riboseq condition '{}' is not present in the "
             "'riboseq_biological_replicates'.".format(ribo_condition))
 
         if raise_on_error:
@@ -252,7 +255,8 @@ def get_matching_condition_and_replicates(condition:str, config:dict,
             return None
 
     if rna_condition not in rnaseq_biological_replicates:
-        msg = ("The rna condition '{}' is not present in the "
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: The rna "
+            "condition '{}' is not present in the "
             "'rnaseq_biological_replicates'.".format(rna_condition))
         
         if raise_on_error:
