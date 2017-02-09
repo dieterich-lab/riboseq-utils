@@ -176,6 +176,100 @@ def get_matching_conditions(config):
     
     return matching_conditions
 
+def get_matching_condition_and_replicates(condition:str, config:dict, 
+        names_only:bool=False, raise_on_error:bool=True):
+    """ Retrieve the matching ribo and rnaseq conditions for the given
+    matching condition name from config.
+
+    Parameters
+    ----------
+    condition: string
+        the name of the "matching" condition
+
+    config: dict
+        the configuration dictionary
+
+    names_only: bool
+        whether to return only the matching ribo and rnaseq conditions
+
+    raise_on_error: bool
+        whether to raise an error or issue a warning message when values are 
+        misssing
+
+    Returns
+    -------
+    None:
+        if raise_on_error is False and any keys are not found
+
+    ... otherwise ...
+    ribo_condition, rna_condition: strings
+        the name of the respective conditions for this "matching" condition
+
+    ribo_replicates, rna_replicates: list of strings
+        the replicates for the respective conditions
+    """
+    # make sure the matching_condition exists
+    matching_conditions = get_matching_conditions(config)
+    if condition not in matching_conditions:
+        msg = ("Could not find \"{}\" in matching_conditions. Please ensure "
+            "the name is spelled correctly.".format(condition))
+
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    # also, make sure the condition is in both of the replicate lists
+    cond = matching_conditions[condition]
+
+    if len(cond) != 2:
+        msg = ("A set of matching conditions is ill-formed. Each set of "
+            "matching conditions must be a 2-tuple. This first condition "
+            "should be the riboseq condition, and the second should be the "
+            "rnaseq condition. '{}: {}'".format(condition, cond))
+
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    ribo_condition = cond[0]
+    rna_condition = cond[1]
+
+    riboseq_biological_replicates = ribo_utils.get_riboseq_replicates(config)
+    rnaseq_biological_replicates = ribo_utils.get_rnaseq_replicates(config)
+
+    if ribo_condition not in riboseq_biological_replicates:
+        msg = ("The riboseq condition '{}' is not present in the "
+            "'riboseq_biological_replicates'.".format(ribo_condition))
+
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    if rna_condition not in rnaseq_biological_replicates:
+        msg = ("The rna condition '{}' is not present in the "
+            "'rnaseq_biological_replicates'.".format(rna_condition))
+        
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    if names_only:
+        return ribo_conditions, rna_conditions
+
+    ribo_replicates = riboseq_biological_replicates[ribo_condition]
+    rna_replicates = rnaseq_biological_replicates[rna_condition]
+
+    return ribo_condition, rna_condition, ribo_replicates, rna_replicates
+
+
 def get_criterion_condition(condition, criterion, config):
     matching_conditions = get_matching_conditions(config)
     if condition not in matching_conditions:
