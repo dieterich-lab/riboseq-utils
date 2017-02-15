@@ -196,7 +196,7 @@ def get_diff_reg_image_file(base_path, condition_1, condition_2,
 
 def get_dominant_isoforms(base_path, note=None):
     n = get_note_string(note)
-    fn = "dominant-isoforms{}.csv.gz".format(n)
+    fn = "dominant-isoform-abundances{}.csv.gz".format(n)
     return os.path.join(base_path, fn)
 
 ### e
@@ -228,6 +228,12 @@ def get_mean_and_var_image_file(base_path, condition, is_merged=False, is_isofor
     n = get_note_string(note)
     fn = '{}{}{}{}.mean-and-var.{}'.format(condition, m, i, n, image_type)
     return os.path.join(base_path, 'plots', 'mean-and-var', fn)
+
+# used
+def get_merged_isoforms(base_path, note=None):
+    n = get_note_string(note)
+    fn = "merged-isoforms-abundances{}.csv.gz".format(n)
+    return os.path.join(base_path, fn)
 
 
 # used
