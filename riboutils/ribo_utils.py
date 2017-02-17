@@ -1016,11 +1016,15 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
         chisq_predicted_orfs = bed_utils.get_longest_features_by_end(chisq_predicted_orfs)
     
     return (all_orfs, bf_predicted_orfs, chisq_predicted_orfs)
-    
+   
+###
+#   Defaults for b-tea scripts
+###
+default_perm_test_min_rpkm_mean = 1
+default_perm_test_max_rpkm_var_power = 1
 
 ###
-# The following functions are all related. They are used to estimate p-values
-# for the KL-divergence values calculated for translational efficiency (only).
+#   Field names for b-tea files
 ###
 
 field_map = {
@@ -1036,6 +1040,16 @@ def get_field_name(field):
     
     return field_map[field]
 
+
+
+###
+# The following functions are all related. They are used to estimate p-values
+# for the KL-divergence values calculated for translational efficiency (only).
+#
+# These functions are all based on the old "wide" data frame format. Thus, they
+# have all been deprecated.
+###
+
 mean_format_map = {
     "te": "log_translational_efficiency_loc_{1}",
     "ribo": "{}_abundance_mean_loc_{}",
@@ -1048,6 +1062,21 @@ var_format_map = {
     "rna": "{}_abundance_var_loc_{}"
 }
 
+# decorator to raise the deprecated warning
+def ribo_deprecated(func):
+    """ Issue a warning that the given function uses the "wide" df format and
+        should be replaced with the easier to work with "long" format.
+    """
+    def wrapper(*args, **kwargs):
+        msg = ("[ribo_utils.{}]: This function has been deprecated. It uses "
+            "the old \"wide\" df format. Please replace it with the "
+            "respective \"long\" df format function.".format(func.__name__))
+        logger.warning(msg)
+
+        return func(*args, **kwargs)
+    return wrapper
+
+@ribo_deprecated
 def get_mean_var_column_names(field, condition):
     """ This function returns the name of the columns containing the mean and
         variance for the given field and condition.
@@ -1071,7 +1100,6 @@ def get_mean_var_column_names(field, condition):
         var_column : string
             The name of the column containing the variances for this field
     """
-    
     mean_field = mean_format_map[field].format(field, condition)
     var_field = var_format_map[field].format(field, condition)
 
@@ -1089,6 +1117,7 @@ pvalue_format_map = {
     "rna": "rna_abundance_{}_{}_pvalue"
 }
 
+@ribo_deprecated
 def get_kl_pvalue_column_name(field, condition_1, condition_2):
     """ This function returns the names of the columns containing the estimated
         KL-divergence and pvalues for the two conditions and field.
@@ -1112,7 +1141,6 @@ def get_kl_pvalue_column_name(field, condition_1, condition_2):
     pvalue_column : string
         The name of the column containing the means-values for this field
     """
-    
     kl_field = kl_format_map[field].format(condition_1, condition_2)
     pvalue_field = pvalue_format_map[field].format(condition_1, condition_2)
 
@@ -1124,6 +1152,7 @@ significant_pvalue_format_map = {
     "rna": "significant_rna_{}_{}"
 }
 
+@ribo_deprecated
 def get_significant_pvalue_column_name(field, condition_1, condition_2):
     """ Column name indicating the specified estimates significantly differ
 
@@ -1147,6 +1176,7 @@ def get_significant_pvalue_column_name(field, condition_1, condition_2):
     sig_pval_col = sig_pval_col.format(condition_1, condition_2)
     return sig_pval_col
 
+@ribo_deprecated
 def get_micropeptide_overlap_column_name(condition):
     """ Column name indicating an overlap with a micropeptide
 
@@ -1167,10 +1197,12 @@ log_fold_change_map = {
     "rna": "rna_abundance_{}_{}_log_fold_change"
 }
 
+@ribo_deprecated
 def get_log_fold_change_field_name(field, condition_1, condition_2):
     lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
     return lfc_field
 
+@ribo_deprecated
 def get_log_fold_changes(df, condition_pairs):
     """ This function creates a new data frame which includes all of the log
         fold changes (TE, riboseq and RNA-seq) for each of the condition
@@ -1222,6 +1254,7 @@ def get_log_fold_changes(df, condition_pairs):
                
     return log_fold_changes_df
 
+@ribo_deprecated
 def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5):
     import numpy as np
 
@@ -1266,6 +1299,7 @@ def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5)
         
     return m_filter
 
+@ribo_deprecated
 def get_variance_filter(kl_df, condition_1, condition_2, field, max_var=0.5):
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -1297,7 +1331,7 @@ def get_variance_filter(kl_df, condition_1, condition_2, field, max_var=0.5):
         
     return m_filter
 
-
+@ribo_deprecated
 def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -1329,6 +1363,7 @@ def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
         
     return m_filter
 
+@ribo_deprecated
 def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, strategy='sampling'):
     import numpy as np
     import scipy.stats
@@ -1424,6 +1459,7 @@ def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, st
 
     return kl
 
+@ribo_deprecated
 def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition_2, field,
                                    num_random_samples=10000, seed=8675309, use_progress_bar=False):
     
@@ -1461,13 +1497,8 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
                 
     return random_kls
 
-def get_pvalue(val, kls):
-    import numpy as np
 
-    pos = np.searchsorted(kls, val)
-    p = 1 - (pos/len(kls))
-    return p
-
+@ribo_deprecated
 def get_transcript_pvalues(kl_df, condition_1, condition_2, field, 
                 min_mean=1, max_var=None, var_power=None,
                 num_random_samples=10000, seed=8675309, num_cpus=1, num_groups=500):
@@ -1520,6 +1551,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
     
     return m_filter, pvals
 
+@ribo_deprecated
 def get_significant_differences(condition_1, condition_2, pval_df, 
                                 alpha=0.05, min_rpkm_mean=None, max_rpkm_var=None,var_power=None):
 
@@ -1655,6 +1687,7 @@ def get_significant_differences(condition_1, condition_2, pval_df,
     filters= [ np.array(f) for f in filters ]
     return filters
 
+@ribo_deprecated
 def get_significance_filter(filters, field, significant_only=True):
     """ This function returns the appropriate mask to filter on significance
         of the given field. It assumes the filters are in the same order as the
@@ -1695,6 +1728,7 @@ def get_significance_filter(filters, field, significant_only=True):
 
     return filters[index]
 
+@ribo_deprecated
 def get_up_and_down_masks(condition_1, condition_2, pval_df):
     """ This function finds all of the transcripts which are, respectively
         higher or lower in the first condition. That is, "up" and "down"
@@ -1746,7 +1780,7 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
     up_down_masks = [ np.array(f) for f in up_down_masks ]
     return up_down_masks
 
-
+@ribo_deprecated
 def get_up_down_filter(filters, field, direction):
     """ This function returns the appropriate mask to filter on the given field
         in the given direction. It assumes the filters are in the same order as
