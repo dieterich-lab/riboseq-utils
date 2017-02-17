@@ -1033,6 +1033,8 @@ field_map = {
     "te": "Translational Efficiency"
 }
 
+fields = sorted(field_map.keys())
+
 
 def get_field_name(field):
     """ This function maps from the field to a human-readable name.
@@ -1040,12 +1042,81 @@ def get_field_name(field):
     
     return field_map[field]
 
-
-
 ###
 # The following functions are all related. They are used to estimate p-values
 # for the KL-divergence values calculated for translational efficiency (only).
-#
+###
+def get_basic_filter(kl, condition_1, condition_2, field):
+    """ Mask kl to filter on the conditions and field. """
+    m_condition_1 = kl['condition_1'] == condition_1
+    m_condition_2 = kl['condition_2'] == condition_2
+    m_field = kl['field'] == field
+    m_basic = m_condition_1 & m_condition_2 & m_field
+    return m_basic
+
+def get_rpkm_mean_filter(kl, min_rpkm_mean):
+    """ Mask kl to filter on the estimated means. """
+    
+    m_min_rpkm_mean_1 = kl['mean_1'] > min_rpkm_mean
+    m_min_rpkm_mean_2 = kl['mean_2'] > min_rpkm_mean
+    m_min_rpkm_mean = m_min_rpkm_mean_1 & m_min_rpkm_mean_2
+    return m_min_rpkm_mean
+
+def get_rpkm_var_power_filter(kl, max_rpkm_var_power):
+    """ Mask kl to filter on the variances as a power of the means. """
+    import numpy as np
+    
+    m_max_rpkm_var_1 = kl['var_1'] < np.power(kl['mean_1'], max_rpkm_var_power)
+    m_max_rpkm_var_2 = kl['var_2'] < np.power(kl['mean_2'], max_rpkm_var_power)
+    m_max_rpkm_var = m_max_rpkm_var_1 & m_max_rpkm_var_2
+    return m_max_rpkm_var
+
+def get_basic_and_rpkm_filter(kl, condition_1, condition_2, field, 
+        min_rpkm_mean, max_rpkm_var_power):
+    """ Mask kl using all of the indicated filters. This handles TE as the 
+    combination of both riboseq and rnaseq.
+    """
+
+    if field == "te":
+        # first, get the genes which meet the rpkm requirements
+        m_ribo = get_basic_and_rpkm_filter(
+            kl, 
+            condition_1, 
+            condition_2, 
+            "ribo", 
+            min_rpkm_mean, 
+            max_rpkm_var_power
+        )
+        
+        m_rna = get_basic_and_rpkm_filter(
+            kl, 
+            condition_1, 
+            condition_2, 
+            "rna", 
+            min_rpkm_mean, 
+            max_rpkm_var_power
+        )
+
+        # find the gene ids that meet both filters
+        ribo_gene_ids = set(kl.loc[m_ribo, 'gene_id'].unique())
+        rna_gene_ids = set(kl.loc[m_rna, 'gene_id'].unique())
+        gene_ids = ribo_gene_ids & rna_gene_ids
+
+        # get all te rows for these conditions
+        m_basic = get_basic_filter(kl, condition_1, condition_2, "te")
+
+        # and only keep the genes which met both rpkm requirements
+        m_gene_ids = kl['gene_id'].isin(gene_ids)
+        m_all = m_basic & m_gene_ids
+
+    else:
+        m_basic = get_basic_filter(kl, condition_1, condition_2, field)
+        m_min_rpkm_mean = get_rpkm_mean_filter(kl, min_rpkm_mean)
+        m_max_rpkm_var = get_rpkm_var_power_filter(kl, max_rpkm_var_power)
+        m_all = m_basic & m_min_rpkm_mean & m_max_rpkm_var
+    return m_all
+
+###
 # These functions are all based on the old "wide" data frame format. Thus, they
 # have all been deprecated.
 ###

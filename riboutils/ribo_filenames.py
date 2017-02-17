@@ -85,10 +85,10 @@ def get_length_string(length=None):
     l = ""
     if length is not None:
         if isinstance(length, (list, tuple)):
-            l = "-".join(length)
+            l = "-".join(str(l) for l in length)
             l = ".length-{}".format(l)
         else:
-            l = ".length-{}".format(length)
+            l = ".length-{}".format(str(length))
     return l
 
 def get_merged_string(is_merged):
@@ -113,10 +113,10 @@ def get_offset_string(offset=None):
     o = ""
     if offset is not None:
         if isinstance(offset, (list, tuple)):
-            o = "-".join(offset)
+            o = "-".join(str(o) for o in offset)
             o = ".offset-{}".format(o)
         else:
-            o = ".offset-{}".format(offset)
+            o = ".offset-{}".format(str(offset))
     return o
 
 def get_reweighting_iterations_string(reweighting_iterations=None):
