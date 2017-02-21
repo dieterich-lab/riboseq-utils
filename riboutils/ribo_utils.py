@@ -122,6 +122,15 @@ def get_riboseq_replicates(config):
     }
     return ret
 
+def get_riboseq_replicates_reverse_map(config):
+    """ Extract a mapping from sample to condition. """
+    riboseq_replicates = get_riboseq_replicates(config)
+    reverse_map = {
+        v:k for k, l in riboseq_replicates.items() for v in l
+    }
+    return reverse_map
+
+
 def get_riboseq_replicate_name_map(config):
     """ Extract the pretty names for the riboseq replicates, if they are given
     in the config. All other names are returned unchanged.
@@ -534,16 +543,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
         num_nans = sum(nans)
         num_predictions = len(likelihood)
 
-        msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
-        logger.debug(msg)
-
-        msg = ("Using the likelihood filter. min_mean: {}, min_likelihood: {}"
-            .format(min_bf_mean, min_bf_likelihood))
-        logger.debug(msg)
-
         max_likelihood = max(likelihood[~nans])
-        msg = "Maximum likelihood: {}".format(max_likelihood)
-        logger.debug(msg)
 
         # now filter
         m_bf_likelihood = likelihood > min_bf_likelihood
