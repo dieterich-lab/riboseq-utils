@@ -21,7 +21,7 @@ sample_sheet_file_type_choices = [
 default_sample_sheet_file_type = 'AUTO'
 default_sheet_name = "Sheet1"
 default_riboseq_sample_types = ['riboseq']
-default_rnaseq_sample_types = ['rna-seq']
+default_rnaseq_sample_types = ['rna-seq', 'total-rna-seq']
 
 def get_sample_name(condition:str, sample_type:str, cell_type:str=None, 
         replicate:str=None, lane:str=None):
@@ -177,7 +177,7 @@ def main():
         "replicates from a csv sample sheet. The csv file must include the "
         "following columns: sample_filename, condition, sample_type. "
         "Optionally, it can also use the following columns in the filenames: "
-        "cell_type, replicate_name. The format of the symlinks and sample "
+        "cell_type, replicate_name, lane. The format of the symlinks and sample "
         "names is as follows:<condition>.<sample_type>[.cell-type-<cell_type>]"
         "[.rep-<replicate>][.lane-<lane>]. The optional parts are skipped if "
         "they are not present in the sample sheet. The script first "
@@ -215,6 +215,10 @@ def main():
     parser.add_argument('--overwrite', help="If this flag is given, then "
         "files at the symlink locations will be overwritten. N.B. THIS COULD "
         "DESTROY THE ORIGINAL DATA FILES! BE CAREFUL!!!", action='store_true')
+
+    parser.add_argument('--no-symlinks', help="If this flag is given, then "
+        "symlinks will not be created. Namely, only the yaml config file will "
+        "be written.", action='store_true')
     
     logging_utils.add_logging_options(parser)
     args = parser.parse_args()
@@ -266,10 +270,11 @@ def main():
         _get_sample_filename_helper
     )
 
-    msg = "Creating symlinks"
-    logger.info(msg)
+    if not args.no_symlinks:
+        msg = "Creating symlinks"
+        logger.info(msg)
 
-    parallel.apply_df_simple(sample_sheet, _create_symlink, args.overwrite)
+        parallel.apply_df_simple(sample_sheet, _create_symlink, args.overwrite)
 
     msg = "Pooling samples for each replicate from different lanes"
     logger.info(msg)
@@ -285,7 +290,9 @@ def main():
     )
         
     replicate_groups = sample_sheet.groupby('replicate_name')
-    replicate_groups.apply(pool_lanes)
+
+    if not args.no_symlinks:
+        replicate_groups.apply(pool_lanes)
 
     msg = "Extracting replicate names for config"
     logger.info(msg)
@@ -298,7 +305,6 @@ def main():
         'replicate_filename'
     )
 
-    # finally, create the yaml config file
     m_rnaseq = sample_sheet['sample_type'].isin(args.rnaseq_sample_types)
     rnaseq_samples = utils.dataframe_to_dict(
         sample_sheet[m_rnaseq], 
@@ -338,6 +344,20 @@ def main():
     msg = "Writing partial config file"
     logger.info(msg)
     config = {
+        'project_name': "<PROJECT_NAME>",
+        'note': "<NOTE>",
+        'gtf': "<GTF>",
+        'fasta': "<FASTA>",
+        'star_index': "<STAR_INDEX>",
+        'ribosomal_index': "<RIBOSOMAL_INDEX>",
+        'ribosomal_fasta': "<RIBOSOMAL_FASTA>",
+        'genome_base_path': "<GENOME_BASE_PATH>",
+        'genome_name': "<GENOME_NAME>",
+        'orf_note': "<ORF_NOTE>",
+        'adapter_file': "<RIBO_ADAPTER_FILE>",
+        'rna_adapter_file': "<RNA_ADAPTER_FILE>",
+        'riboseq_data': "<RIBO_DATA_PATH>",
+        'rnaseq_data': "<RNA_DATA_PATH>",
         'riboseq_samples': riboseq_samples,
         'rnaseq_samples': rnaseq_samples,
         'riboseq_biological_replicates': ribo_condition_groups,
