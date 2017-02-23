@@ -160,7 +160,13 @@ def pool_lanes(g):
     to_cat = g['filename']
     row = g.iloc[0]
     rep_file = row['replicate_filename']
-    utils.concatenate_files(to_cat, rep_file)
+
+    # if there is only one to_cat file, just create a symlink
+    if len(to_cat) == 1:
+        f = to_cat.iloc[0]
+        utils.create_symlink(f, rep_file, create=True)
+    else:
+        utils.concatenate_files(to_cat, rep_file)
     
 def get_condition_replicates(g):
     row = g.iloc[0]
