@@ -72,6 +72,9 @@ The script looks for the following columns in the sample sheet.
   sample sheet can also contain information about other sample types (ChIP-seq,
   for example), but this script ignores those.
 
+* `location`. The location for the symlinks, concatenated samples, etc. The
+  files are placed directly in this directory. Exampe: `/prj/riechert-riboseq/RPF/raw-data/`
+
 #### Optional
 
 * `cell_type`. The type of cell from which the sample comes. Example: `cm`
