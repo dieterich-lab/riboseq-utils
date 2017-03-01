@@ -1896,6 +1896,19 @@ def get_up_down_filter(filters, field, direction):
 
     return filters[index]
 
+def get_is_merged_is_isoforms(use_dominant_isoforms):
+    """ Find the values of is_merged, is_isoforms based on the 
+    use_dominant_isoforms flag.
+    """
+    is_merged = True
+    is_isoforms = False
+
+    if use_dominant_isoform:
+        is_merged = False
+        is_isoforms = True
+
+    return (is_merged, is_isoforms)
+
 
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd
