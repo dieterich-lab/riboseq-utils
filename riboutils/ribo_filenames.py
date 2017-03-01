@@ -147,6 +147,12 @@ def get_transcriptome_string(is_transcriptome):
 
 ### b
 
+def get_b_tea_differential_analysis_report(base_path, note):
+    n = get_note_string(note)
+    fn = "differential-analysis-report{}.tex".format(n)
+    return os.path.join(base_path, fn)
+
+
 def get_bed(base_path, name, is_merged=False, is_annotated=False, 
         is_de_novo=False, is_cds_only=False):
 
@@ -185,13 +191,28 @@ def get_changepoint_image_file(base_path, note, condition, group, lookback, cp_t
     return os.path.join(base_path, 'plots', 'changepoints', fn)
 
 ### d
-def get_diff_reg_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
+def get_diff_reg_image_file(
+        base_path,
+        condition_1,
+        condition_2, 
+        is_merged=False,
+        is_isoforms=False,
+        image_type='pdf',
+        note=None):
 
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}{}-{}{}{}{}.diff-reg.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
+
+    fn = '{}-{}{}{}{}.diff-reg.{}'.format(
+        condition_1, 
+        condition_2, 
+        m, 
+        i,
+        n, 
+        image_type
+    )
+
     return os.path.join(base_path, 'plots', 'diff-reg', fn)
 
 def get_dominant_isoforms(base_path, note=None):
@@ -222,7 +243,14 @@ def get_gtf(base_path, name, is_de_novo=False, is_annotated=False, is_merged=Fal
 ### m
 
 # used
-def get_mean_and_var_image_file(base_path, condition, is_merged=False, is_isoforms=False, image_type='pdf', note=None):
+def get_mean_and_var_image_file(
+        base_path, 
+        condition,
+        is_merged=False,
+        is_isoforms=False,
+        image_type='pdf',
+        note=None):
+
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
@@ -890,19 +918,53 @@ def get_rpbp_prediction_report(base_path, note):
     return os.path.join(base_path, fn)
 
 # used
-def get_rpkm_image_file(base_path, condition, is_merged=False, is_isoforms=False, image_type='pdf', note=None):
+def get_rpkm_image_file(
+        base_path,
+        condition,
+        is_merged=False,
+        is_isoforms=False,
+        image_type='pdf',
+        note=None):
+
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
     n = get_note_string(note)
-    fn = '{}{}{}.rpkm.{}'.format(condition, m, n, image_type)
+    fn = '{}{}{}{}.rpkm.{}'.format(
+        condition, 
+        m,
+        i,
+        n, 
+        image_type
+    )
+
     return os.path.join(base_path, 'plots', 'rpkm', fn)
 
 # used
-def get_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
+def get_rpkm_fold_change_image_file(
+        base_path, 
+        condition_1, 
+        condition_2, 
+        is_merged=False,
+        is_isoforms=False,
+        is_filtered=False,
+        image_type='pdf',
+        note=None):
 
+    
     m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
+    f = get_filtered_string(is_filtered)
     n = get_note_string(note)
-    fn = '{}{}-{}{}{}.rpkm-fc.{}'.format(condition_1, m, condition_2, m, n, image_type)
+    fn = '{}-{}{}{}{}{}.rpkm-fc.{}'.format(
+        condition_1, 
+        condition_2, 
+        m, 
+        i,
+        f,
+        n, 
+        image_type
+    )
+
     return os.path.join(base_path, 'plots', 'rpkm-fc', fn)
 
 # used
@@ -920,18 +982,21 @@ def get_rpkm_te_comparison_image_file(
         condition_2,
         is_merged=False,
         is_isoforms=False,
+        is_filtered=False,
         image_type='pdf',
         note=None):
 
     
     m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoform)
+    i = get_isoforms_string(is_isoforms)
+    f = get_filtered_string(is_filtered)
     n = get_note_string(note)
-    fn = '{}-{}{}{}{}.rpkm-te-comparison.{}'.format(
+    fn = '{}-{}{}{}{}{}.rpkm-te-comparison.{}'.format(
         condition_1, 
         condition_2, 
         m, 
         i,
+        f,
         n, 
         image_type
     )
@@ -968,14 +1033,32 @@ def get_te_kl_image_file(base_path, condition_1, condition_2,
     return os.path.join(base_path, 'plots', 'te-kl', fn)
 
 
-def get_te_ma_image_file(base_path, condition_1, condition_2, 
-        is_merged=False, is_isoforms=False, image_type='pdf', note=None):
+def get_ma_image_file(
+        base_path,
+        condition_1,
+        condition_2, 
+        is_merged=False,
+        is_isoforms=False,
+        is_filtered=False,
+        image_type='pdf',
+        note=None):
 
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
+    f = get_filtered_string(is_filtered)
     n = get_note_string(note)
-    fn = '{}{}{}-{}{}{}{}.te-ma.{}'.format(condition_1, m, i, condition_2, m, i, n, image_type)
-    return os.path.join(base_path, 'plots', 'te-ma', fn)
+
+    fn = '{}-{}{}{}{}{}.ma-plots.{}'.format(
+        condition_1, 
+        condition_2, 
+        m, 
+        i,
+        f,
+        n, 
+        image_type
+    )
+
+    return os.path.join(base_path, 'plots', 'ma-plots', fn)
 
 def get_te_pvalues(base_path, name, is_merged=False, is_isoforms=False, note=None):
 
