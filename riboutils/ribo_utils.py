@@ -1035,12 +1035,23 @@ field_map = {
 
 fields = sorted(field_map.keys())
 
-
 def get_field_name(field):
     """ This function maps from the field to a human-readable name.
     """
     
     return field_map[field]
+
+mean_field_map = {
+    "ribo": "ribo_abundance_mean_loc",
+    "rna": "rna_abundance_mean_loc",
+    "te": "log_translational_efficiency_loc"
+}
+
+var_field_map = {
+ "ribo": "ribo_abundance_var_loc",
+ "rna": "rna_abundance_var_loc",
+ "te": "log_translational_efficiency_scale"
+}
 
 ###
 # The following functions are all related. They are used to estimate p-values
@@ -1903,7 +1914,7 @@ def get_is_merged_is_isoforms(use_dominant_isoforms):
     is_merged = True
     is_isoforms = False
 
-    if use_dominant_isoform:
+    if use_dominant_isoforms:
         is_merged = False
         is_isoforms = True
 
