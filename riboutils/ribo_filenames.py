@@ -132,17 +132,23 @@ def get_smooth_string(is_smooth):
         s = ".smooth"
     return s
 
-def get_unique_string(is_unique):
-    unique = ""
-    if is_unique:
-        unique = "-unique"
-    return unique
+def get_zscore_string(is_zscore):
+    s = ""
+    if is_zscore:
+        s = ".zscore"
+    return s
 
 def get_transcriptome_string(is_transcriptome):
     transcriptome = ""
     if is_transcriptome:
         transcriptome = ".transcriptome"
     return transcriptome
+
+def get_unique_string(is_unique):
+    unique = ""
+    if is_unique:
+        unique = "-unique"
+    return unique
 
 
 ### b
@@ -403,17 +409,37 @@ def get_orf_type_profile_image(base_path, orf_type, strand, image_type='eps'):
     fn = ".{}.{}.metagene-profiles.{}".format(orf_type, strand, image_type)
     return base_path + fn
 
-def get_orf_types_pie_chart(riboseq_base, name, length=None, offset=None, is_unique=False, 
-        is_cds_only=False, is_transcriptome=False, fraction=None, is_smooth=False,
-        reweighting_iterations=None,  note=None, is_grouped=False, is_chisq=False,
-        is_filtered=False, image_type='pdf'):
+def get_orf_types_pie_chart(
+    riboseq_base, 
+    name, 
+    image_type='pdf',
+    **kwargs):
     
     subfolder = os.path.join('orf-predictions', 'plots')
-    s = get_riboseq_base(riboseq_base, name, subfolder, length=length, offset=offset, 
-        is_unique=is_unique, is_cds_only=is_cds_only, is_transcriptome=is_transcriptome,
-        fraction=fraction, reweighting_iterations=reweighting_iterations, note=note, 
-        is_grouped=is_grouped, is_chisq=is_chisq, is_filtered=is_filtered)
-    s = s + ".orf-types.{}".format(image_type)
+    s = get_riboseq_base(
+        riboseq_base, 
+        name, 
+        subfolder,
+        **kwargs
+    )
+    s = s + ".orf-types-pie.{}".format(image_type)
+    return s
+
+
+def get_orf_types_bar_chart(
+    riboseq_base, 
+    name, 
+    image_type='pdf',
+    **kwargs):
+    
+    subfolder = os.path.join('orf-predictions', 'plots')
+    s = get_riboseq_base(
+        riboseq_base, 
+        name, 
+        subfolder,
+        **kwargs
+    )
+    s = s + ".orf-types-bar.{}".format(image_type)
     return s
 
 
@@ -1060,12 +1086,19 @@ def get_ma_image_file(
 
     return os.path.join(base_path, 'plots', 'ma-plots', fn)
 
-def get_te_pvalues(base_path, name, is_merged=False, is_isoforms=False, note=None):
+def get_te_pvalues(
+        base_path, 
+        name, 
+        is_merged=False, 
+        is_isoforms=False,
+        is_zscore=False,
+        note=None):
 
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
+    z = get_zscore_string(is_zscore)
     n = get_note_string(note)
-    fn = '{}{}{}{}.te-pvalues.csv.gz'.format(name, m, i, n)
+    fn = '{}{}{}{}.te-pvalues{}.csv.gz'.format(name, m, i, n, z)
     return os.path.join(base_path, fn)
 
 
