@@ -351,7 +351,15 @@ def get_sample_name_map(config):
 
     return sample_name_map
 
+def get_condition_name_map(config):
+    """ Extract the mapping from the 'condition_name_map' and create a default
+    one for all conditions without an entry.
+    """
+    condition_name_map = _return_key_dict()
+    if 'condition_name_map' in config:
+        condition_name_map.update(config['condition_name_map'])
 
+    return condition_name_map
 
 def filter_condition_pairs(config, allowed_conditions):
     """ Create an iterator which yields only condition pairs for which both 
@@ -1034,13 +1042,25 @@ field_map = {
 }
 
 fields = sorted(field_map.keys())
-
+field_name_order = [field_map[f] for f in fields]
 
 def get_field_name(field):
     """ This function maps from the field to a human-readable name.
     """
     
     return field_map[field]
+
+mean_field_map = {
+    "ribo": "ribo_abundance_mean_loc",
+    "rna": "rna_abundance_mean_loc",
+    "te": "log_translational_efficiency_loc"
+}
+
+var_field_map = {
+ "ribo": "ribo_abundance_var_loc",
+ "rna": "rna_abundance_var_loc",
+ "te": "log_translational_efficiency_scale"
+}
 
 ###
 # The following functions are all related. They are used to estimate p-values
@@ -1896,6 +1916,50 @@ def get_up_down_filter(filters, field, direction):
 
     return filters[index]
 
+def get_is_merged_is_isoforms(use_dominant_isoforms):
+    """ Find the values of is_merged, is_isoforms based on the 
+    use_dominant_isoforms flag.
+    """
+    is_merged = True
+    is_isoforms = False
+
+    if use_dominant_isoforms:
+        is_merged = False
+        is_isoforms = True
+
+    return (is_merged, is_isoforms)
+
+def melt_te_df(te):
+    """ Melt a data frame from the translational efficiency estimations
+    to a long df suitable for use with seaborn, etc.
+    """
+    
+    # we only want to keep the mean and var estimates
+    mean_fields_to_keep = [mean_field_map[f] for f in fields]
+    var_fields_to_keep = [var_field_map[f] for f in fields]
+    fields_to_keep = mean_fields_to_keep + var_fields_to_keep
+
+    # but we need this as a hierarchical index
+    mean_fields = [(f, 'mean') for f in fields]
+    var_fields = [(f, 'var') for f in fields]
+    hierarchical_fields = mean_fields + var_fields
+
+    # drop the rest of the fields, except gene_id
+    te_df = te.set_index('gene_id')
+    te_df = te_df[fields_to_keep]
+
+    # add the multi-index for the columns
+    te_df.columns = pd.MultiIndex.from_tuples(hierarchical_fields)
+
+    # bring the gene_id back
+    te_df = te_df.stack(level=0)
+    te_df.index.names = ["gene_id", "field"]
+    te_df = te_df.reset_index(drop=False)
+
+    # go ahead and add the pretty name
+    te_df['field_name'] = te_df['field'].map(field_map)
+
+    return te_df
 
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd

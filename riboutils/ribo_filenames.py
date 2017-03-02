@@ -940,6 +940,31 @@ def get_rpkm_vs_rpkm_image_file(base_path, condition_1, condition_2,
     fn = '{}{}-{}{}{}.{}-rpkm-vs-rpkm.{}'.format(condition_1, m, condition_2, m, n, field, image_type)
     return os.path.join(base_path, 'plots', 'rpkm-vs-rpkm', fn)
 
+def get_rpkm_te_comparison_image_file(
+        base_path,
+        condition_1,
+        condition_2,
+        is_merged=False,
+        is_isoforms=False,
+        image_type='pdf',
+        note=None):
+
+    
+    m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoform)
+    n = get_note_string(note)
+    fn = '{}-{}{}{}{}.rpkm-te-comparison.{}'.format(
+        condition_1, 
+        condition_2, 
+        m, 
+        i,
+        n, 
+        image_type
+    )
+
+    return os.path.join(base_path, 'plots', 'rpkm-te-comparison', fn)
+
+
 ### s
 
 # used
