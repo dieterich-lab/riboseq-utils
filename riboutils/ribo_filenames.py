@@ -203,18 +203,21 @@ def get_diff_reg_image_file(
         condition_2, 
         is_merged=False,
         is_isoforms=False,
+        is_zscore=False,
         image_type='pdf',
         note=None):
 
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
+    z = get_zscore_string(is_zscore)
     n = get_note_string(note)
 
-    fn = '{}-{}{}{}{}.diff-reg.{}'.format(
+    fn = '{}-{}{}{}{}{}.diff-reg.{}'.format(
         condition_1, 
         condition_2, 
         m, 
         i,
+        z,
         n, 
         image_type
     )
@@ -973,19 +976,22 @@ def get_rpkm_fold_change_image_file(
         is_merged=False,
         is_isoforms=False,
         is_filtered=False,
+        is_zscore=False,
         image_type='pdf',
         note=None):
 
     
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
+    z = get_zscore_string(is_zscore)
     f = get_filtered_string(is_filtered)
     n = get_note_string(note)
-    fn = '{}-{}{}{}{}{}.rpkm-fc.{}'.format(
+    fn = '{}-{}{}{}{}{}{}.rpkm-fc.{}'.format(
         condition_1, 
         condition_2, 
         m, 
         i,
+        z,
         f,
         n, 
         image_type
@@ -1009,6 +1015,7 @@ def get_rpkm_te_comparison_image_file(
         is_merged=False,
         is_isoforms=False,
         is_filtered=False,
+        is_zscore=False,
         image_type='pdf',
         note=None):
 
@@ -1016,12 +1023,14 @@ def get_rpkm_te_comparison_image_file(
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
     f = get_filtered_string(is_filtered)
+    z = get_zscore_string(is_zscore)
     n = get_note_string(note)
-    fn = '{}-{}{}{}{}{}.rpkm-te-comparison.{}'.format(
+    fn = '{}-{}{}{}{}{}{}.rpkm-te-comparison.{}'.format(
         condition_1, 
         condition_2, 
         m, 
         i,
+        z,
         f,
         n, 
         image_type
@@ -1089,19 +1098,22 @@ def get_ma_image_file(
         is_merged=False,
         is_isoforms=False,
         is_filtered=False,
+        is_zscore=False,
         image_type='pdf',
         note=None):
 
     m = get_merged_string(is_merged)
     i = get_isoforms_string(is_isoforms)
     f = get_filtered_string(is_filtered)
+    z = get_zscore_string(is_zscore)
     n = get_note_string(note)
 
-    fn = '{}-{}{}{}{}{}.ma-plots.{}'.format(
+    fn = '{}-{}{}{}{}{}{}.ma-plots.{}'.format(
         condition_1, 
         condition_2, 
         m, 
         i,
+        z,
         f,
         n, 
         image_type
