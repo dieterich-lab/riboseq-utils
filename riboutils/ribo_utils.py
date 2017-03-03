@@ -100,10 +100,20 @@ def get_all_transcript_ids(orfs, sep="_", num_cpus=1, progress_bar=False):
 
     return transcript_ids
 
-
 ###
 #   The following functions are all used for parsing replicates, etc., from the config file.
 ###
+
+def get_sample_reverse_map(config):
+    """ Extract a mapping from riboseq and rnaseq samples to conditions. """
+    reverse_map = _return_key_dict()
+
+    riboseq_reverse_map = get_riboseq_replicates_reverse_map(config)
+    rnaseq_reverse_map = get_rnaseq_replicates_reverse_map(config)
+
+    reverse_map.update(riboseq_reverse_map)
+    reverse_map.update(rnaseq_reverse_map)
+    return reverse_map
 
 def get_riboseq_replicates(config):
     if 'riboseq_biological_replicates' in config:
@@ -131,17 +141,48 @@ def get_riboseq_replicates_reverse_map(config):
     return reverse_map
 
 
-def get_riboseq_replicate_name_map(config):
+def get_field_condition_name_map(config):
+    """ Extract a mapping from riboseq and rnaseq conditions to pretty names.
+    """
+    condition_name_map = _return_key_dict()
+
+    riboseq_map = get_riboseq_condition_name_map(config)
+    rnaseq_map = get_rnaseq_condition_name_map(config)
+
+    condition_name_map.update(riboseq_map)
+    condition_name_map.update(rnaseq_map)
+    return condition_name_map
+
+
+def get_riboseq_condition_name_map(config):
     """ Extract the pretty names for the riboseq replicates, if they are given
     in the config. All other names are returned unchanged.
+
+    This is based on the 'riboseq_condition_name_map' key.
     """
 
-    riboseq_replicate_name_map = _return_key_dict()
+    riboseq_condition_name_map = _return_key_dict()
 
-    if 'riboseq_replicate_name_map' in config:
-        riboseq_replicate_name_map.update(config['riboseq_replicate_name_map'])
+    if 'riboseq_condition_name_map' in config:
+        riboseq_condition_name_map.update(config['riboseq_condition_name_map'])
 
-    return riboseq_replicate_name_map
+    return riboseq_condition_name_map
+
+
+def get_rnaseq_condition_name_map(config):
+    """ Extract the pretty names for the rnaseq conditions, if they are given
+    in the config. All other names are returned unchanged.
+
+    This is based on the 'rnaseq_condition_name_map' key.
+    """
+
+    rnaseq_condition_name_map = _return_key_dict()
+
+    if 'rnaseq_condition_name_map' in config:
+        rnaseq_condition_name_map.update(config['rnaseq_condition_name_map'])
+
+    return rnaseq_condition_name_map
+
 
 
 def get_rnaseq_replicates(config):
@@ -161,6 +202,16 @@ def get_rnaseq_replicates(config):
         name: [name] for name, sample in config['rnaseq_samples'].items()
     }
     return ret
+
+
+def get_rnaseq_replicates_reverse_map(config):
+    """ Extract a mapping from sample to condition. """
+    rnaseq_replicates = get_rnaseq_replicates(config)
+    reverse_map = {
+        v:k for k, l in rnaseq_replicates.items() for v in l
+    }
+    return reverse_map
+
 
 def get_matching_conditions(config):
     if 'matching_conditions' in config:

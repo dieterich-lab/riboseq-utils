@@ -1033,6 +1033,29 @@ def get_rpkm_te_comparison_image_file(
 ### s
 
 # used
+def get_sample_embedding_file(
+        base_path,
+        is_merged=False,
+        is_isoforms=False,
+        image_type='pdf',
+        note=None):
+     
+    m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
+    n = get_note_string(note)
+    fn = 'sample-embedding{}{}{}.{}'.format(
+        condition_1, 
+        condition_2, 
+        m, 
+        i,
+        n, 
+        image_type
+    )
+
+    return os.path.join(base_path, 'plots', fn)
+
+
+
 def get_star_index(base_path, name, is_merged=False):
     m = get_merged_string(is_merged)
     fn = '{}{}'.format(name, m)
