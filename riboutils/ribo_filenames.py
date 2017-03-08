@@ -241,6 +241,32 @@ def get_exons(base_path, name, is_annotated=False, is_de_novo=False, note=None):
 
 ### g
 
+def get_differential_gene_xlsx(
+        base_path,
+        condition_1,
+        condition_2, 
+        is_merged=False,
+        is_isoforms=False,
+        is_zscore=False,
+        note=None):
+
+    m = get_merged_string(is_merged)
+    i = get_isoforms_string(is_isoforms)
+    z = get_zscore_string(is_zscore)
+    n = get_note_string(note)
+
+    fn = '{}-{}{}{}{}{}.diff-genes.xlsx'.format(
+        condition_1, 
+        condition_2, 
+        m, 
+        i,
+        z,
+        n, 
+    )
+
+    return os.path.join(base_path, 'diff-genes', fn)
+
+
 def get_gtf(base_path, name, is_de_novo=False, is_annotated=False, is_merged=False, is_cds_only=False):
     c = get_annotated_string(is_annotated)
     m = get_merged_string(is_merged)
