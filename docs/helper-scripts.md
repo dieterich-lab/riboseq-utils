@@ -79,7 +79,7 @@ The script looks for the following columns in the sample sheet.
 
 * `cell_type`. The type of cell from which the sample comes. Example: `cm`
 
-* `replicate_name`. A name for this replicate. Example: `mouse-403`
+* `replicate`. A name for this replicate. Example: `mouse-403`
 
 * `lane`. If the reads for a single replicate are spread across multiple lanes,
   then these are often distributed as multiple files. As described below, if 
