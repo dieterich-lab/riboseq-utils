@@ -2012,6 +2012,137 @@ def melt_te_df(te):
 
     return te_df
 
+def get_bitseq_estimates(config, is_merged, is_isoforms,
+        bitseq_id_field='transcript_id', strings_to_remove=['.cds-only', '.merged'],):
+    """ Load the bitseq abundance estimates into a single long data frame.
+
+    Parameters
+    ----------
+    config: dict-like
+        The configuration for the project, presumably from the yaml file
+
+    is_{merged,isoforms}: bool
+        Whether to use merged cds or isoform abundance estimate files
+
+    bitseq_id_field: str
+        Name for the "transcript_id" field (second column) in bitseq tr file
+
+    strings_to_remove: list of strings
+        A list of strings to replace with "" in the bitseq ids
+
+    Returns
+    -------
+    bitseq_estimates: pd.DataFrame
+        A data frame containing the following columns
+
+            * rpkm_{mean,var}: the bitseq estimates
+            * sample: the name of the respective sample
+            * type: "ribo" or "rna"
+    """
+    import misc.bio as bio
+    import tqdm
+    
+    msg = "Reading the bitseq tr info file"
+    logger.info(msg)
+
+    # since we are selecting the dominant isoform, we know the transcripts are
+    # not merged
+    transcript_fasta = filenames.get_transcript_fasta(
+        config['genome_base_path'], 
+        config['genome_name'], 
+        is_annotated=True, 
+        is_merged=is_merged, 
+        is_cds_only=True
+    )
+
+    tr_info = filenames.get_bitseq_transcript_info(transcript_fasta)
+    bitseq_tr = bio.read_bitseq_tr_file(tr_info)
+
+    # we need to remove all of the indicated strings from the ids
+    for to_remove in strings_to_remove:
+        tids = bitseq_tr['transcript_id'].str.replace(to_remove, "")
+        bitseq_tr['transcript_id'] = tids
+
+    bitseq_tr = bitseq_tr.rename(columns={'transcript_id': bitseq_id_field})
+
+    note = config.get('note', None)
+    
+    all_dfs = []
+    
+    msg = "Reading riboseq BitSeq estimates"
+    logger.info(msg)
+    
+    is_unique = 'keep_riboseq_multimappers' not in config
+    
+    it = tqdm.tqdm(config['riboseq_samples'].items())
+    for name, file in it:
+
+        lengths, offsets = get_periodic_lengths_and_offsets(
+            config, 
+            name,
+            is_merged=is_merged, 
+            is_isoforms=is_isoforms, 
+            is_unique=is_unique
+        )
+
+        bitseq_rpkm_mean = filenames.get_riboseq_bitseq_rpkm_mean(
+            config['riboseq_data'], 
+            name, 
+            is_unique=is_unique, 
+            is_transcriptome=True, 
+            is_cds_only=True,
+            length=lengths, 
+            offset=offsets, 
+            is_merged=is_merged, 
+            is_isoforms=is_isoforms, 
+            note=note
+        )
+
+        field_names = ['rpkm_mean', 'rpkm_var']
+        bitseq_rpkm_mean_df = bio.read_bitseq_means(bitseq_rpkm_mean, names=field_names)
+        bitseq_rpkm_mean_df['sample'] = name
+        bitseq_rpkm_mean_df['type'] = 'ribo'
+        bitseq_rpkm_mean_df[bitseq_id_field] = bitseq_tr[bitseq_id_field]
+
+        all_dfs.append(bitseq_rpkm_mean_df)
+
+
+    # now, the rnaseq    
+    msg = "Reading RNA-seq BitSeq estimates"
+    logger.info(msg)
+    
+    is_unique = ('remove_rnaseq_multimappers' in config)
+    
+    it = tqdm.tqdm(config['rnaseq_samples'].items())
+    for name, data in it:
+
+        bitseq_rpkm_mean = filenames.get_rnaseq_bitseq_rpkm_mean(
+            config['rnaseq_data'], 
+            name, 
+            is_unique=is_unique, 
+            is_transcriptome=True, 
+            is_cds_only=True,
+            is_merged=is_merged, 
+            is_isoforms=is_isoforms, 
+            note=note
+        )
+
+        field_names = ['rpkm_mean', 'rpkm_var']
+        bitseq_rpkm_mean_df = bio.read_bitseq_means(bitseq_rpkm_mean, names=field_names)
+        bitseq_rpkm_mean_df['sample'] = name
+        bitseq_rpkm_mean_df['type'] = 'rna'
+        bitseq_rpkm_mean_df[bitseq_id_field] = bitseq_tr[bitseq_id_field]
+
+        all_dfs.append(bitseq_rpkm_mean_df)
+
+    
+    msg = "Joining estimates into long data frame"
+    logger.info(msg)
+    
+    long_df = pd.concat(all_dfs)
+    long_df = long_df.reset_index(drop=True)
+    return long_df
+
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd
     import misc.bio_utils.bed_utils as bed_utils
