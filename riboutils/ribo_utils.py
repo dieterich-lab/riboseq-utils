@@ -457,8 +457,8 @@ default_min_metagene_bf_mean = 5
 default_max_metagene_bf_var = None
 default_min_metagene_bf_likelihood = 0.5
 
-def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=False,
-            is_isoforms=False, is_unique=True):
+def get_periodic_lengths_and_offsets(config, name, do_not_call=False,
+        isoform_strategy=None, is_unique=True):
 
     """ This function applies a set of filters to metagene profiles to select those
         which are "periodic" based on the read counts and Bayes factor estimates.
@@ -498,31 +498,31 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
             on the likelihood of periodicity (see min_metagene_bf_mean description
             for more details). default: 0.5
 
-        Args:
-            config (dictionary) : the configuration information(see description)
+        Parameters
+        ----------
+        config: dictionary
+            the configuration information(see description)
 
-            name (string) : the name of the dataset in question
+        name: string
+            the name of the dataset in question
 
-            do_not_call (bool) : whether the metagene bf file should exist. If false,
-                then dummy values are returned (and a warning message is printed).
+        do_not_call: bool
+            whether the metagene bf file should exist. If false, then dummy
+            values are returned (and a warning message is printed).
 
-            is_merged (bool) : whether the "merged" transcripts are used (i.e., is
-                this for rpbp or ribo-te)
+        isoform_strategy: string
+            which strategy is used to select isoforms (relevant for B-tea only)
 
-            is_isoforms (bool): whether the transcript isforms are used (i.e., is
-                this the transcript-abundance variant of ribo-te)
+        is_unique: bool
+            whether only unique reads are used in the files
 
-            is_unique (bool): whether only unique reads are used in the files
+        Returns
+        -------
+        lengths: list of strings
+            all of the periodic read lengths
 
-        Returns:
-            lengths (list of strings) : all of the periodic read lengths
-
-            offsets (list of strings) : the corresponding P-site offsets for the
-                read lengths. 
-
-        Imports:
-            numpy
-            scipy.stats
+        offsets: list of strings
+            the corresponding P-site offsets for the read lengths
     """
     import numpy as np
     import scipy.stats
@@ -549,17 +549,24 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
 
     note_str = config.get('note', None)
 
-    periodic_offsets = filenames.get_periodic_offsets(config['riboseq_data'], name, 
-        is_unique=is_unique, is_merged=is_merged, is_isoforms=is_isoforms, note=note_str)
+    periodic_offsets = filenames.get_periodic_offsets(
+        config['riboseq_data'],
+        name, 
+        is_unique=is_unique,
+        isoform_strategy=isoform_strategy,
+        note=note_str
+    )
     
     if not os.path.exists(periodic_offsets):
-        msg = ("The periodic offsets file does not exist. Please ensure the select-periodic-offsets "
-            "script completed successfully or specify the \"use_fixed_lengths\", \"lengths\", and "
-            "\"offsets\" values in the configuration file. '{}'".format(periodic_offsets))
+        msg = ("The periodic offsets file does not exist. Please ensure the "
+            "select-periodic-offsets script completed successfully or specify "
+            "the \"use_fixed_lengths\", \"lengths\", and \"offsets\" values "
+            "in the configuration file. '{}'".format(periodic_offsets))
 
         if do_not_call:
-            msg = msg +  ("\nThe --do-not-call flag was given, so \"dummy\" default lengths will be "
-                "used to check the remaining calls.\n")
+            msg = msg +  ("\nThe --do-not-call flag was given, so a \"dummy\" "
+                "default length (29) and offset (12) will be used to check "
+                "the remaining calls.\n")
 
             logger.warning(msg)
 
@@ -619,12 +626,14 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     if len(lengths) == 0:
         msg = ("The periodic offsets file was found, but no periodic lengths "
             "were found. Please ensure the select-periodic-offsets script "
-            "completed successfully or specify the \"use_fixed_lengths\", \"lengths\", and "
-            "\"offsets\" values in the configuration file. '{}'".format(periodic_offsets))
+            "completed successfully or specify the \"use_fixed_lengths\", "
+            "\"lengths\", and \"offsets\" values in the configuration file. "
+            "'{}'".format(periodic_offsets))
 
         if do_not_call:
-            msg = msg +  ("\nThe --do-not-call flag was given, so \"dummy\" default lengths will be "
-                "used to check the remaining calls.\n")
+             msg = msg +  ("\nThe --do-not-call flag was given, so a \"dummy\" "
+                "default length (29) and offset (12) will be used to check "
+                "the remaining calls.\n")
 
             logger.warning(msg)
 
@@ -1967,19 +1976,6 @@ def get_up_down_filter(filters, field, direction):
 
     return filters[index]
 
-def get_is_merged_is_isoforms(use_dominant_isoforms):
-    """ Find the values of is_merged, is_isoforms based on the 
-    use_dominant_isoforms flag.
-    """
-    is_merged = True
-    is_isoforms = False
-
-    if use_dominant_isoforms:
-        is_merged = False
-        is_isoforms = True
-
-    return (is_merged, is_isoforms)
-
 def melt_te_df(te):
     """ Melt a data frame from the translational efficiency estimations
     to a long df suitable for use with seaborn, etc.
@@ -2012,8 +2008,11 @@ def melt_te_df(te):
 
     return te_df
 
-def get_bitseq_estimates(config, is_merged, is_isoforms,
-        bitseq_id_field='transcript_id', strings_to_remove=['.cds-only', '.merged'],):
+def get_bitseq_estimates(
+        config,
+        isoform_strategy,
+        bitseq_id_field='transcript_id',
+        strings_to_remove=['.cds-only', '.merged']):
     """ Load the bitseq abundance estimates into a single long data frame.
 
     Parameters
@@ -2021,8 +2020,8 @@ def get_bitseq_estimates(config, is_merged, is_isoforms,
     config: dict-like
         The configuration for the project, presumably from the yaml file
 
-    is_{merged,isoforms}: bool
-        Whether to use merged cds or isoform abundance estimate files
+    isoform_strategy: str
+        The strategy for handling transcript isoforms
 
     bitseq_id_field: str
         Name for the "transcript_id" field (second column) in bitseq tr file
@@ -2045,8 +2044,12 @@ def get_bitseq_estimates(config, is_merged, is_isoforms,
     msg = "Reading the bitseq tr info file"
     logger.info(msg)
 
-    # since we are selecting the dominant isoform, we know the transcripts are
-    # not merged
+    # check which transcript file to load
+    is_merged = False
+    if isoform_strategy == "merged":
+        is_merged = True
+
+    # and get the file
     transcript_fasta = filenames.get_transcript_fasta(
         config['genome_base_path'], 
         config['genome_name'], 
@@ -2080,8 +2083,7 @@ def get_bitseq_estimates(config, is_merged, is_isoforms,
         lengths, offsets = get_periodic_lengths_and_offsets(
             config, 
             name,
-            is_merged=is_merged, 
-            is_isoforms=is_isoforms, 
+            isoform_strategy=isoform_strategy, 
             is_unique=is_unique
         )
 
@@ -2093,13 +2095,16 @@ def get_bitseq_estimates(config, is_merged, is_isoforms,
             is_cds_only=True,
             length=lengths, 
             offset=offsets, 
-            is_merged=is_merged, 
-            is_isoforms=is_isoforms, 
+            isoform_strategy=isoform_strategy, 
             note=note
         )
 
         field_names = ['rpkm_mean', 'rpkm_var']
-        bitseq_rpkm_mean_df = bio.read_bitseq_means(bitseq_rpkm_mean, names=field_names)
+        bitseq_rpkm_mean_df = bio.read_bitseq_means(
+            bitseq_rpkm_mean,
+            names=field_names
+        )
+
         bitseq_rpkm_mean_df['sample'] = name
         bitseq_rpkm_mean_df['type'] = 'ribo'
         bitseq_rpkm_mean_df[bitseq_id_field] = bitseq_tr[bitseq_id_field]
@@ -2122,13 +2127,16 @@ def get_bitseq_estimates(config, is_merged, is_isoforms,
             is_unique=is_unique, 
             is_transcriptome=True, 
             is_cds_only=True,
-            is_merged=is_merged, 
-            is_isoforms=is_isoforms, 
+            isoform_strategy=isoform_strategy, 
             note=note
         )
 
         field_names = ['rpkm_mean', 'rpkm_var']
-        bitseq_rpkm_mean_df = bio.read_bitseq_means(bitseq_rpkm_mean, names=field_names)
+        bitseq_rpkm_mean_df = bio.read_bitseq_means(
+            bitseq_rpkm_mean,
+            names=field_names
+        )
+
         bitseq_rpkm_mean_df['sample'] = name
         bitseq_rpkm_mean_df['type'] = 'rna'
         bitseq_rpkm_mean_df[bitseq_id_field] = bitseq_tr[bitseq_id_field]
