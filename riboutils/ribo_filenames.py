@@ -910,7 +910,6 @@ def get_rnaseq_bitseq(
     cds_only = get_cds_only_string(is_cds_only)
     l = get_length_string(length)
     transcriptome = get_transcriptome_string(is_transcriptome)
-    m = get_merged_string(is_merged)
     i = get_isoform_strategy_string(isoform_strategy)
     n = get_note_string(note)
 
@@ -1083,7 +1082,6 @@ def get_star_index(base_path, name, is_merged=False):
 ### t
 def get_te_kl(base_path, name, isoform_strategy=None, note=None):
 
-    m = get_merged_string(is_merged)
     i = get_isoform_strategy_string(isoform_strategy)
     n = get_note_string(note)
     fn = ''.join([
@@ -1189,7 +1187,6 @@ def get_translational_efficiency(
         isoform_strategy=None,
         note=None):
 
-    m = get_merged_string(is_merged)
     i = get_isoform_strategy_string(isoform_strategy)
     n = get_note_string(note)
 
