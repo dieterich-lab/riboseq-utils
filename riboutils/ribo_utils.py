@@ -631,7 +631,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False,
             "'{}'".format(periodic_offsets))
 
         if do_not_call:
-             msg = msg +  ("\nThe --do-not-call flag was given, so a \"dummy\" "
+            msg = msg +  ("\nThe --do-not-call flag was given, so a \"dummy\" "
                 "default length (29) and offset (12) will be used to check "
                 "the remaining calls.\n")
 
