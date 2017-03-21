@@ -356,60 +356,68 @@ def get_models(models_base, model_type):
     return models
 
 # used
-def get_motif_analysis_base_folder(base, condition_1, condition_2, criterion, sequence_type):
-    folder = "{}.{}.{}.{}".format(condition_1, condition_2, criterion, sequence_type)
+def get_motif_analysis_base_folder(
+        base,
+        condition_1,
+        condition_2,
+        field,
+        region):
+
+    folder = [
+        condition_1,
+        condition_2,
+        field,
+        region
+    ]
+
+    folder = '.'.join(folder)
     folder = os.path.join(base, 'motif-analysis', folder)
     return folder
 
 
-def get_motif_analysis_folder(base, condition_1, condition_2, criterion, 
-        sequence_type, fore_condition):
-
-    folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
-        criterion, sequence_type)
-
+def get_motif_analysis_folder(fore_condition, **kwargs):
+    folder = get_motif_analysis_base_folder(**kwargs)
     subfolder = "{}.fore".format(fore_condition)
     return os.path.join(folder, subfolder)
 
 
-def get_motif_analysis_results(base, condition_1, condition_2, criterion, 
-        sequence_type, fore_condition):
-
-    folder = get_motif_analysis_folder(base, condition_1, condition_2, 
-        criterion, sequence_type, fore_condition)
-
+def get_motif_analysis_results(**kwargs):
+    folder = get_motif_analysis_folder(**kwargs)
     result_file = os.path.join(folder, "ame.txt")
     return result_file
 
-def get_motif_fimo_folder(base, condition_1, condition_2, criterion, direction,
-        sequence_type, motifs):
-
-    base_folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
-        criterion, sequence_type)
-
+def get_motif_fimo_folder(motifs, direction, **kwargs):
+    
+    base_folder = get_motif_analysis_base_folder(**kwargs)
     motifs_name = utils.get_basename(motifs)
 
-    fimo_folder = "{}.{}-{}.{}.{}".format(condition_2, criterion, direction, 
-        sequence_type, motifs_name)
+    fimo_folder = [
+        kwargs['condition_2'],
+        direction,
+        motifs_name
+    ]
+
+    fimo_folder = '.'.join(fimo_folder)
     fimo_folder = os.path.join(base_folder, fimo_folder)
     return fimo_folder
 
 
-def get_motif_fimo_results(base, condition_1, condition_2, criterion, direction,
-        sequence_type, motifs):
-   
-    fimo_folder = get_motif_fimo_folder(base, condition_1, condition_2, criterion, 
-        direction, sequence_type, motifs)
+def get_motif_fimo_results(**kwargs):   
+    fimo_folder = get_motif_fimo_folder(**kwargs)
     result_file = os.path.join(fimo_folder, "fimo.txt")
-
     return result_file
 
     
-def get_motif_sequences(base, condition_1, condition_2, criterion, direction, sequence_type):
-    folder = get_motif_analysis_base_folder(base, condition_1, condition_2, 
-        criterion, sequence_type)
+def get_motif_sequences(direction, **kwargs):
+       
+    folder = get_motif_analysis_base_folder(**kwargs)
 
-    motif_sequences = "{}.{}-{}.{}.fa".format(condition_2, criterion, direction, sequence_type)
+    motif_sequences = [
+        kwargs['condition_2'],
+        direction
+    ]
+    motif_sequences = '.'.join(motif_sequences)
+    motif_sequences = motif_sequences + ".fa"
     motif_sequences = os.path.join(folder, motif_sequences)
     return motif_sequences
 
