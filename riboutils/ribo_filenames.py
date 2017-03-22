@@ -221,27 +221,23 @@ def get_diff_reg_image_file(
         base_path,
         condition_1,
         condition_2, 
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         is_zscore=False,
         image_type='pdf',
         note=None):
 
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    z = get_zscore_string(is_zscore)
-    n = get_note_string(note)
-
-    fn = '{}-{}{}{}{}{}.diff-reg.{}'.format(
-        condition_1, 
-        condition_2, 
-        m, 
-        i,
-        z,
-        n, 
+    
+    fn = [
+        condition_1,
+        "-",
+        condition_2,
+        get_isoform_strategy_string(isoform_strategy),
+        get_zscore_string(is_zscore),
+        get_note_string(note),
+        ".diff-reg.",
         image_type
-    )
-
+    ]
+    fn = ''.join(fn)
     return os.path.join(base_path, 'plots', 'diff-reg', fn)
 
 ### e
@@ -311,15 +307,18 @@ def get_gtf(
 def get_mean_and_var_image_file(
         base_path, 
         condition,
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         image_type='pdf',
         note=None):
 
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    n = get_note_string(note)
-    fn = '{}{}{}{}.mean-and-var.{}'.format(condition, m, i, n, image_type)
+    fn = [
+        condition,
+        get_isoform_strategy_string(isoform_strategy),
+        get_note_string(note),
+        ".mean-and-var.",
+        image_type
+    ]
+    fn = ''.join(fn)
     return os.path.join(base_path, 'plots', 'mean-and-var', fn)
 
 # used
@@ -968,21 +967,18 @@ def get_rpbp_prediction_report(base_path, note):
 def get_rpkm_image_file(
         base_path,
         condition,
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         image_type='pdf',
         note=None):
 
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    n = get_note_string(note)
-    fn = '{}{}{}{}.rpkm.{}'.format(
-        condition, 
-        m,
-        i,
-        n, 
+    fn = [
+        condition,
+        get_isoform_strategy_string(isoform_strategy),
+        get_note_string(note),
+        ".rpkm.",
         image_type
-    )
+    ]
+    fn = ''.join(fn)
 
     return os.path.join(base_path, 'plots', 'rpkm', fn)
 
@@ -991,30 +987,24 @@ def get_rpkm_fold_change_image_file(
         base_path, 
         condition_1, 
         condition_2, 
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         is_filtered=False,
         is_zscore=False,
         image_type='pdf',
         note=None):
-
     
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    z = get_zscore_string(is_zscore)
-    f = get_filtered_string(is_filtered)
-    n = get_note_string(note)
-    fn = '{}-{}{}{}{}{}{}.rpkm-fc.{}'.format(
-        condition_1, 
-        condition_2, 
-        m, 
-        i,
-        z,
-        f,
-        n, 
+    fn = [
+        condition_1,
+        "-",
+        condition_2,
+        get_isoform_strategy_string(isoform_strategy),
+        get_zscore_string(is_zscore),
+        get_filtered_string(is_filtered),
+        get_note_string(note),
+        ".rpkm-fc.",
         image_type
-    )
-
+    ]
+    fn = ''.join(fn)
     return os.path.join(base_path, 'plots', 'rpkm-fc', fn)
 
 # used
@@ -1030,29 +1020,24 @@ def get_rpkm_te_comparison_image_file(
         base_path,
         condition_1,
         condition_2,
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         is_filtered=False,
         is_zscore=False,
         image_type='pdf',
         note=None):
 
-    
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    f = get_filtered_string(is_filtered)
-    z = get_zscore_string(is_zscore)
-    n = get_note_string(note)
-    fn = '{}-{}{}{}{}{}{}.rpkm-te-comparison.{}'.format(
-        condition_1, 
-        condition_2, 
-        m, 
-        i,
-        z,
-        f,
-        n, 
+    fn = [
+        condition_1,
+        "-",
+        condition_2,
+        get_isoform_strategy_string(isoform_strategy),
+        get_zscore_string(is_zscore),
+        get_filtered_string(is_filtered),
+        get_note_string(note),
+        ".rpkm-te-comparison.",
         image_type
-    )
+    ]
+    fn = ''.join(fn)
 
     return os.path.join(base_path, 'plots', 'rpkm-te-comparison', fn)
 
@@ -1062,24 +1047,20 @@ def get_rpkm_te_comparison_image_file(
 # used
 def get_sample_embedding_file(
         base_path,
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         image_type='pdf',
         note=None):
      
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    n = get_note_string(note)
-    fn = 'sample-embedding{}{}{}.{}'.format(
-        m, 
-        i,
-        n, 
+    fn = [
+        "sample-embedding",
+        get_isoform_strategy_string(isoform_strategy),
+        get_note_string(note),
+        ".",
         image_type
-    )
+    ]
 
+    fn = ''.join(fn)
     return os.path.join(base_path, 'plots', fn)
-
-
 
 def get_star_index(base_path, name, is_merged=False):
     m = get_merged_string(is_merged)
@@ -1115,29 +1096,25 @@ def get_ma_image_file(
         base_path,
         condition_1,
         condition_2, 
-        is_merged=False,
-        is_isoforms=False,
+        isoform_strategy=None,
         is_filtered=False,
         is_zscore=False,
         image_type='pdf',
         note=None):
 
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    f = get_filtered_string(is_filtered)
-    z = get_zscore_string(is_zscore)
-    n = get_note_string(note)
-
-    fn = '{}-{}{}{}{}{}{}.ma-plots.{}'.format(
-        condition_1, 
-        condition_2, 
-        m, 
-        i,
-        z,
-        f,
-        n, 
+    
+    fn = [
+        condition_1,
+        "-",
+        condition_2,
+        get_isoform_strategy_string(isoform_strategy),
+        get_zscore_string(is_zscore),
+        get_filtered_string(is_filtered),
+        get_note_string(note),
+        ".ma-plots.",
         image_type
-    )
+    ]
+    fn = ''.join(fn)
 
     return os.path.join(base_path, 'plots', 'ma-plots', fn)
 
