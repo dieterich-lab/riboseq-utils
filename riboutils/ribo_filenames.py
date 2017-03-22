@@ -217,6 +217,29 @@ def get_changepoint_image_file(base_path, note, condition, group, lookback, cp_t
     return os.path.join(base_path, 'plots', 'changepoints', fn)
 
 ### d
+
+def get_differential_gene_xlsx(
+        base_path,
+        condition_1,
+        condition_2, 
+        isoform_strategy=None,
+        is_zscore=False,
+        note=None):
+
+
+    fn = [
+        condition_1,
+        "-",
+        condition_2,
+        get_isoform_strategy_string(isoform_strategy),
+        get_zscore_string(is_zscore),
+        get_note_string(note),
+        ".diff-genes.xlsx"
+    ]
+    fn = ''.join(fn)
+    return os.path.join(base_path, 'diff-genes', fn)
+
+
 def get_diff_reg_image_file(
         base_path,
         condition_1,
@@ -258,32 +281,6 @@ def get_exons(
  
 
 ### g
-
-def get_differential_gene_xlsx(
-        base_path,
-        condition_1,
-        condition_2, 
-        is_merged=False,
-        is_isoforms=False,
-        is_zscore=False,
-        note=None):
-
-    m = get_merged_string(is_merged)
-    i = get_isoforms_string(is_isoforms)
-    z = get_zscore_string(is_zscore)
-    n = get_note_string(note)
-
-    fn = '{}-{}{}{}{}{}.diff-genes.xlsx'.format(
-        condition_1, 
-        condition_2, 
-        m, 
-        i,
-        z,
-        n, 
-    )
-
-    return os.path.join(base_path, 'diff-genes', fn)
-
 
 def get_gtf(
         base_path, 
