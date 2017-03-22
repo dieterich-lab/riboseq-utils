@@ -2221,10 +2221,11 @@ def _get_matching_condition(row, condition_field, config):
     if field == "te":
         field = "ribo"
     
-    return ribo_utils.get_criterion_condition(condition, field, config)
+    return get_criterion_condition(condition, field, config)
 
 def _add_matching_conditions(pvalues, config):
     """ Add the "matching" conditions for both conditions. """
+    import misc.parallel as parallel
 
     # turn off logging; we already know we have matching conditions
     logger_level = logger.getEffectiveLevel()
@@ -2270,7 +2271,7 @@ def _add_transcript_id(pvalues, abundances):
     
     return pvalues
 
-def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict):
+def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict, args):
     """ Add the transcript id for the dominant isoform in each condition.
     
     This function is really only intended to be used with the final pvalues
@@ -2288,6 +2289,7 @@ def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict):
     msg = "Reading abundances"
     logger.info(msg)
 
+    note = config.get('note')
     abundances = filenames.get_abundances(
         config['translational_efficiency_data'],
         isoform_strategy=args.isoform_strategy,
