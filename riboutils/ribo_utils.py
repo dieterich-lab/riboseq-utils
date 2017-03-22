@@ -2151,6 +2151,63 @@ def get_bitseq_estimates(
     long_df = long_df.reset_index(drop=True)
     return long_df
 
+def update_gene_id_from_transcript_id(df:pd.DataFrame, config:dict, args=None):
+    """ Assuming "gene_id" is actually a transcript id, replace it
+    with the actual gene identifier.
+    
+    This function is used in the case of the "all" isoform
+    strategy when downstream analysis actually needs a gene
+    identifier.
+    
+    Parameters
+    ----------
+    df: pd.DataFrame
+        A data frame which contains a "gene_id" field which actually
+        contains transcript identifiers. For example, the latter parts
+        of the B-tea pipeline produce data frames like this with
+        the "all" isoform strategy
+        
+    config: dict
+        Configuration options
+        
+    args: argparse.Namespace or None
+        The logging options from the command line. pyensembl likes
+        to overwrite these, so they will be reset.
+        
+    Returns
+    -------
+    updated_df: pd.DataFrame
+        A data frame in which the 'gene_id' column is moved to a
+        'transcript_id' column, and the 'gene_id' column is updated
+        to include  actual gene identifiers
+    """
+    import misc.bio_utils.pyensembl_utils as pyensembl_utils
+
+    msg = "Loading Ensembl annotations"
+    logger.info(msg)
+    
+    ensembl = pyensembl_utils.get_genome(
+        config['genome_name'],
+        config['gtf'],
+        logging_args = args
+    )
+    
+    msg = "Finding the gene ids for each transcript id"
+    logger.info(msg)
+    
+    gene_ids = set(df['gene_id'])
+    transcript_gene_mapping = pyensembl_utils.get_gene_ids_of_transcript_ids(
+        gene_ids, ensembl)
+    
+    msg = "Adding gene ids to data frame"
+    logger.info(msg)
+    
+    df['transcript_id'] = df['gene_id']
+    df = df.drop('gene_id', 1)
+    df = df.merge(transcript_gene_mapping, on='transcript_id')
+    
+    return df
+
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd
     import misc.bio_utils.bed_utils as bed_utils
