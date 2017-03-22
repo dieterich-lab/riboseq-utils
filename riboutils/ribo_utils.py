@@ -217,14 +217,14 @@ def get_matching_conditions(config):
     if 'matching_conditions' in config:
         if config['matching_conditions'] is not None:
             msg = "Found 'matching_conditions' key in config file"
-            logger.info(msg)
+            logger.debug(msg)
 
             return config['matching_conditions']
         
     msg = ("Did not find 'matching_conditions' key in config file. Using "
             "riboseq and rnaseq conditions (biological_replicate entries) "
             "as matching conditions.")
-    logger.info(msg)
+    logger.debug(msg)
     
     # otherwise, get the replicates and match key names
     riboseq_replicates = get_riboseq_replicates(config)
