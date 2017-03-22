@@ -2208,6 +2208,106 @@ def update_gene_id_from_transcript_id(df:pd.DataFrame, config:dict, args=None):
     
     return df
 
+###
+#   These are functions for retrieving the dominant isoform for
+#   each gene and condition.
+###
+
+def _get_matching_condition(row, condition_field, config):
+    condition = row[condition_field]
+    field = row['field']
+    
+    # use the ribo conditions for te
+    if field == "te":
+        field = "ribo"
+    
+    return ribo_utils.get_criterion_condition(condition, field, config)
+
+def _add_matching_conditions(pvalues, config):
+    """ Add the "matching" conditions for both conditions. """
+
+    # turn off logging; we already know we have matching conditions
+    logger_level = logger.getEffectiveLevel()
+
+    logger.setLevel("WARNING")
+    matching_condition_1 = parallel.apply_df_simple(
+        pvalues,
+        _get_matching_condition,
+        "condition_1",
+        config
+    )
+
+    matching_condition_2 = parallel.apply_df_simple(
+        pvalues,
+        _get_matching_condition,
+        "condition_2",
+        config
+    )
+
+    pvalues['matching_condition_1'] = matching_condition_1
+    pvalues['matching_condition_2'] = matching_condition_2
+
+    logger.setLevel(logger_level)
+    
+    return pvalues
+
+def _add_transcript_id(pvalues, abundances):
+    """ Use the gene ID an dominant isoform information
+    to pull back the transcript id for each "matching" condition.
+    """
+    
+    left_on=['matching_condition_1', 'gene_id', 'field']
+    right_on=['condition', 'gene_id', 'field']
+
+    pvalues = pvalues.merge(abundances, left_on=left_on, right_on=right_on)
+    pvalues = pvalues.rename(columns={"transcript_id": "transcript_id_1"})
+    pvalues = pvalues.drop('condition', 1)
+
+    left_on=['matching_condition_2', 'gene_id', 'field']
+    pvalues = pvalues.merge(abundances, left_on=left_on, right_on=right_on)
+    pvalues = pvalues.rename(columns={"transcript_id": "transcript_id_2"})
+    pvalues = pvalues.drop('condition', 1)
+    
+    return pvalues
+
+def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict):
+    """ Add the transcript id for the dominant isoform in each condition.
+    
+    This function is really only intended to be used with the final pvalues
+    data frame from B-tea.
+    """
+    
+    # now, we need to get the transcript ids for condition_1 and condition_2
+    abundance_fields_to_keep = [
+        'type',
+        'transcript_id',
+        'gene_id',
+        'condition'
+    ]
+
+    msg = "Reading abundances"
+    logger.info(msg)
+
+    abundances = filenames.get_abundances(
+        config['translational_efficiency_data'],
+        isoform_strategy=args.isoform_strategy,
+        note=note
+    )
+
+    abundances = pd.read_csv(abundances)
+    abundances = abundances[abundance_fields_to_keep]
+    abundances = abundances.drop_duplicates()
+    abundances = abundances.rename(columns={"type": "field"})
+    
+    pvalues = _add_matching_conditions(pvalues, config)
+    pvalues = _add_transcript_id(pvalues, abundances)
+    return pvalues
+
+###
+#   End of dominant isoform extraction functions
+###
+
+
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd
     import misc.bio_utils.bed_utils as bed_utils
