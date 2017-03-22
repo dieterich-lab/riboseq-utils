@@ -357,13 +357,15 @@ def get_motif_analysis_base_folder(
         condition_1,
         condition_2,
         field,
-        region):
+        region,
+        isoform_strategy):
 
     folder = [
         condition_1,
         condition_2,
         field,
-        region
+        region,
+        isoform_strategy
     ]
 
     folder = '.'.join(folder)
