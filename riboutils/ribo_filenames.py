@@ -405,6 +405,25 @@ def get_motif_fimo_results(**kwargs):
     result_file = os.path.join(fimo_folder, "fimo.txt")
     return result_file
 
+def get_motif_heatmap(
+        base,
+        condition_1,
+        condition_2,
+        isoform_strategy,
+        image_type="pdf"):
+    
+    folder = [
+        condition_1,
+        condition_2,
+        isoform_strategy
+    ]
+
+    folder = '.'.join(folder)
+    folder = os.path.join(base, 'motif-analysis', folder)
+
+    fn = "overrepresented-motifs-heatmap.{}".format(image_type)
+    return os.path.join(folder, fn)
+
 def get_motif_report(base, condition_1, condition_2, isoform_strategy):
     
     folder = [
