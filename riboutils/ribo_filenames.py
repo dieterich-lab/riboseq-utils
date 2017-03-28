@@ -405,6 +405,31 @@ def get_motif_fimo_results(**kwargs):
     result_file = os.path.join(fimo_folder, "fimo.txt")
     return result_file
 
+def get_motif_report(base, condition_1, condition_2, isoform_strategy):
+    
+    folder = [
+        condition_1,
+        condition_2,
+        isoform_strategy
+    ]
+
+    folder = '.'.join(folder)
+    folder = os.path.join(base, 'motif-analysis', folder)
+
+    fn = "overrepresented-motifs.tex"
+    return os.path.join(folder, fn)
+
+def get_motif_results(base, isoform_strategy):
+    i = get_isoform_strategy_string(isoform_strategy)
+    motif_results = [
+        "overrepresented-motifs",
+        i,
+        ".csv.gz"
+    ]
+    motif_results = ''.join(motif_results)
+    motif_results = os.path.join(base, 'motif-analysis', motif_results)
+    return motif_results
+
     
 def get_motif_sequences(direction, **kwargs):
        
