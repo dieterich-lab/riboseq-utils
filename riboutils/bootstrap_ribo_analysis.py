@@ -282,9 +282,6 @@ def main():
 
         parallel.apply_df_simple(sample_sheet, _create_symlink, args.overwrite)
 
-    msg = "Pooling samples for each replicate from different lanes"
-    logger.info(msg)
-
     sample_sheet['replicate_name'] = parallel.apply_df_simple(
         sample_sheet, 
         _get_replicate_name_helper
@@ -294,11 +291,16 @@ def main():
         sample_sheet, 
         _get_replicate_filename_helper
     )
-        
-    replicate_groups = sample_sheet.groupby('replicate_name')
 
-    if not args.no_symlinks:
-        replicate_groups.apply(pool_lanes)
+    # check if we were given lanes
+    if 'lane' in sample_sheet.columns:
+        msg = "Pooling samples for each replicate from different lanes"
+        logger.info(msg)
+            
+        replicate_groups = sample_sheet.groupby('replicate_name')
+
+        if not args.no_symlinks:
+            replicate_groups.apply(pool_lanes)
 
     msg = "Extracting replicate names for config"
     logger.info(msg)
