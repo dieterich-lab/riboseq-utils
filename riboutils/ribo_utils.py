@@ -688,6 +688,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
 
     import pysam
     import misc.bio as bio
+    import misc.bio_utils.bed_utils as bed_utils
 
     msg = "Reading BAM file"
     logger.info(msg)
@@ -771,7 +772,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
     map_df = map_df.sort_values(['seqname', 'start'])
 
     # and we only want the BED6 fields
-    map_df = map_df[bio.bed6_field_names]
+    map_df = map_df[bed_utils.bed6_field_names]
     
     return map_df
 
