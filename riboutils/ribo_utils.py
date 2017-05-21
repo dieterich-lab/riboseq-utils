@@ -138,7 +138,10 @@ def get_riboseq_replicates_reverse_map(config):
     reverse_map = {
         v:k for k, l in riboseq_replicates.items() for v in l
     }
-    return reverse_map
+
+    ret_reverse_map = _return_key_dict()
+    ret_reverse_map.update(reverse_map)
+    return ret_reverse_map
 
 
 def get_field_condition_name_map(config):
@@ -210,8 +213,10 @@ def get_rnaseq_replicates_reverse_map(config):
     reverse_map = {
         v:k for k, l in rnaseq_replicates.items() for v in l
     }
-    return reverse_map
 
+    ret_reverse_map = _return_key_dict()
+    ret_reverse_map.update(reverse_map)
+    return ret_reverse_map
 
 def get_matching_conditions(config):
     if 'matching_conditions' in config:

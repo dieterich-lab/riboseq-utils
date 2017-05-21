@@ -4,6 +4,10 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.2] - 2017-05-21
+### Updated
+- The reverse sample maps are now always `_return_key_dicts`.
+
 ## [0.2.1] - 2017-05-09
 ### Fixed
 - A reference to `bio.bed6_field_names`

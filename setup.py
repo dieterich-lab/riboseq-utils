@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='riboutils',
-        version='0.2.1',
+        version='0.2.2',
         description="This package contains utilities for other ribosome profiling projects.",
         long_description=readme(),
         keywords="ribosome profiling utilities translation",
