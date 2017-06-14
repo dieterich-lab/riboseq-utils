@@ -4,6 +4,7 @@ import argparse
 import collections
 import numpy as np
 import pandas as pd
+import sys
 
 import misc.bio_utils.bam_utils as bam_utils
 import misc.bio_utils.bed_utils as bed_utils
@@ -17,10 +18,10 @@ logger = logging.getLogger(__name__)
 default_num_cpus = 1
 default_lengths = []
 
-default_start_upstream = 50
-default_start_downstream = 20
-default_end_upstream = 50
-default_end_downstream = 20
+default_start_upstream = 300
+default_start_downstream = 300
+default_end_upstream = 300
+default_end_downstream = 300
 
 
 def get_interval_df(start, end, seqname, strand):
@@ -105,6 +106,9 @@ def main():
     logging_utils.add_logging_options(parser)
     args = parser.parse_args()
     logging_utils.update_logging(args)
+
+    msg = "[extract-metagene-profiles]: {}".format(' '.join(sys.argv))
+    logger.info(msg)
 
     # first, get the 5' ends of the reads
     alignment_df = bam_utils.get_five_prime_ends(args.bam, progress_bar=True, 

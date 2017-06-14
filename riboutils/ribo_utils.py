@@ -6,17 +6,15 @@ import riboutils.ribo_filenames as filenames
 
 logger = logging.getLogger(__name__)
 
+
+class _return_key_dict(dict):
+    def __missing__(self,key):
+        return key
+
+
 ###
 #   The following labels are used to group similar ORF types.
 ###
-orf_types = ['canonical', 'canonical_extended', 'canonical_truncated', 
-    'five_prime', 'three_prime', 'noncoding', 'novel', 'five_prime_overlap',
-    'suspect_overlap', 'three_prime_overlap', 'within']
-
-
-orf_type_labels = ['canonical', 'canonical_variant', 'five_prime', 
-    'three_prime', 'noncoding', 'other', 'novel']
-
 orf_type_labels_mapping = {
     'canonical': ['canonical'],
     'canonical_variant': ['canonical_extended', 'canonical_truncated'],
@@ -24,8 +22,83 @@ orf_type_labels_mapping = {
     'three_prime': ['three_prime'],
     'noncoding': ['noncoding'],
     'novel': ['novel'],
-    'other': ['five_prime_overlap', 'suspect_overlap', 'three_prime_overlap', 'within']
+    'other': [
+        'five_prime_overlap', 
+        'suspect_overlap', 
+        'three_prime_overlap', 
+        'within'
+    ],
+    'novel_overlap': [
+        'novel_canonical', 
+        'novel_canonical_extended', 
+        'novel_canonical_truncated', 
+        'novel_five_prime', 
+        'novel_three_prime', 
+        'novel_noncoding', 
+        'novel_novel', 
+        'novel_five_prime_overlap',
+        'novel_suspect_overlap', 
+        'novel_three_prime_overlap', 
+        'novel_within'
+    ]
 }
+
+orf_type_labels_reverse_mapping = {
+    v:k for k, l in orf_type_labels_mapping.items() for v in l
+}
+
+orf_type_labels_display_name_map = {
+    'canonical': "Canonical",
+    'canonical_variant': "Canonical variant",
+    'five_prime': "uORF",
+    'three_prime': "dORF",
+    'noncoding': "ncRNA",
+    'novel': "de novo only",
+    'other': "Other",
+    'novel_overlap': "de novo overlap"
+}
+
+orf_type_display_name_map = {
+    'canonical': "Canonical", 
+    'canonical_extended': "Canonical extended", 
+    'canonical_truncated': "Canonical truncated", 
+    'five_prime': "uORF", 
+    'three_prime': "dORF", 
+    'noncoding': "ncRNA", 
+    'five_prime_overlap': "uORF overlap",
+    'suspect_overlap': "Suspect", 
+    'three_prime_overlap': "dORF overlap", 
+    'within': "Within",
+    "novel": "de novo only",
+    'novel_canonical_extended': "de novo canonical extended", 
+    'novel_five_prime': "de novo uORF", 
+    'novel_three_prime': "de novo dORF", 
+    'novel_noncoding': "de novo ncRNA", 
+    'novel_five_prime_overlap': "de novo uORF overlap",
+    'novel_suspect_overlap': "de novo suspect", 
+    'novel_three_prime_overlap': "de novo dORF overlap", 
+    'novel_within': "de novo within",
+}
+
+orf_type_labels = list(orf_type_labels_mapping.keys())
+orf_types = list(orf_type_display_name_map.keys())
+
+###
+#   The following functions are helpful for parsing information out of the identifiers.
+###
+def get_transcript_id(orf_id, sep="_"):
+    return orf_id.split(sep)[0]
+
+def get_all_transcript_ids(orfs, sep="_", num_cpus=1, progress_bar=False):
+    import misc.parallel as parallel
+
+    transcript_ids = parallel.apply_parallel_iter(  orfs['id'],
+                                                    num_cpus,
+                                                    get_transcript_id,
+                                                    sep,
+                                                    progress_bar=progress_bar)
+
+    return transcript_ids
 
 ###
 #   The following functions are helpful for parsing information out of the identifiers.
@@ -49,6 +122,17 @@ def get_all_transcript_ids(orfs, sep="_", num_cpus=1, progress_bar=False):
 #   The following functions are all used for parsing replicates, etc., from the config file.
 ###
 
+def get_sample_reverse_map(config):
+    """ Extract a mapping from riboseq and rnaseq samples to conditions. """
+    reverse_map = _return_key_dict()
+
+    riboseq_reverse_map = get_riboseq_replicates_reverse_map(config)
+    rnaseq_reverse_map = get_rnaseq_replicates_reverse_map(config)
+
+    reverse_map.update(riboseq_reverse_map)
+    reverse_map.update(rnaseq_reverse_map)
+    return reverse_map
+
 def get_riboseq_replicates(config):
     if 'riboseq_biological_replicates' in config:
         if config['riboseq_biological_replicates'] is not None:
@@ -65,6 +149,62 @@ def get_riboseq_replicates(config):
         name: [name] for name, sample in config['riboseq_samples'].items()
     }
     return ret
+
+def get_riboseq_replicates_reverse_map(config):
+    """ Extract a mapping from sample to condition. """
+    riboseq_replicates = get_riboseq_replicates(config)
+    reverse_map = {
+        v:k for k, l in riboseq_replicates.items() for v in l
+    }
+
+    ret_reverse_map = _return_key_dict()
+    ret_reverse_map.update(reverse_map)
+    return ret_reverse_map
+
+
+def get_field_condition_name_map(config):
+    """ Extract a mapping from riboseq and rnaseq conditions to pretty names.
+    """
+    condition_name_map = _return_key_dict()
+
+    riboseq_map = get_riboseq_condition_name_map(config)
+    rnaseq_map = get_rnaseq_condition_name_map(config)
+
+    condition_name_map.update(riboseq_map)
+    condition_name_map.update(rnaseq_map)
+    return condition_name_map
+
+
+def get_riboseq_condition_name_map(config):
+    """ Extract the pretty names for the riboseq replicates, if they are given
+    in the config. All other names are returned unchanged.
+
+    This is based on the 'riboseq_condition_name_map' key.
+    """
+
+    riboseq_condition_name_map = _return_key_dict()
+
+    if 'riboseq_condition_name_map' in config:
+        riboseq_condition_name_map.update(config['riboseq_condition_name_map'])
+
+    return riboseq_condition_name_map
+
+
+def get_rnaseq_condition_name_map(config):
+    """ Extract the pretty names for the rnaseq conditions, if they are given
+    in the config. All other names are returned unchanged.
+
+    This is based on the 'rnaseq_condition_name_map' key.
+    """
+
+    rnaseq_condition_name_map = _return_key_dict()
+
+    if 'rnaseq_condition_name_map' in config:
+        rnaseq_condition_name_map.update(config['rnaseq_condition_name_map'])
+
+    return rnaseq_condition_name_map
+
+
 
 def get_rnaseq_replicates(config):
     if 'rnaseq_biological_replicates' in config:
@@ -84,18 +224,30 @@ def get_rnaseq_replicates(config):
     }
     return ret
 
+
+def get_rnaseq_replicates_reverse_map(config):
+    """ Extract a mapping from sample to condition. """
+    rnaseq_replicates = get_rnaseq_replicates(config)
+    reverse_map = {
+        v:k for k, l in rnaseq_replicates.items() for v in l
+    }
+
+    ret_reverse_map = _return_key_dict()
+    ret_reverse_map.update(reverse_map)
+    return ret_reverse_map
+
 def get_matching_conditions(config):
     if 'matching_conditions' in config:
         if config['matching_conditions'] is not None:
             msg = "Found 'matching_conditions' key in config file"
-            logger.info(msg)
+            logger.debug(msg)
 
             return config['matching_conditions']
         
     msg = ("Did not find 'matching_conditions' key in config file. Using "
             "riboseq and rnaseq conditions (biological_replicate entries) "
             "as matching conditions.")
-    logger.info(msg)
+    logger.debug(msg)
     
     # otherwise, get the replicates and match key names
     riboseq_replicates = get_riboseq_replicates(config)
@@ -106,6 +258,122 @@ def get_matching_conditions(config):
     }
     
     return matching_conditions
+
+def get_matching_condition_and_replicates(condition:str, config:dict, 
+        names_only:bool=False, raise_on_error:bool=True):
+    """ Retrieve the matching ribo and rnaseq conditions for the given
+    matching condition name from config.
+
+    Parameters
+    ----------
+    condition: string
+        the name of the "matching" condition
+
+    config: dict
+        the configuration dictionary
+
+    names_only: bool
+        whether to return only the matching ribo and rnaseq conditions
+
+    raise_on_error: bool
+        whether to raise an error or issue a warning message when values are 
+        misssing
+
+    Returns
+    -------
+    None:
+        if raise_on_error is False and any keys are not found
+
+    ... otherwise ...
+    ribo_condition, rna_condition: strings
+        the name of the respective conditions for this "matching" condition
+
+    ribo_replicates, rna_replicates: list of strings
+        the replicates for the respective conditions
+    """
+    # make sure the matching_condition exists
+    matching_conditions = get_matching_conditions(config)
+    if condition not in matching_conditions:
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: Could not "
+            "find \"{}\" in matching_conditions. Please ensure the name is "
+            "spelled correctly.".format(condition))
+
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    # also, make sure the condition is in both of the replicate lists
+    cond = matching_conditions[condition]
+
+    if len(cond) != 2:
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: A set of "
+            "matching conditions is ill-formed. Each set of matching "
+            "conditions must be a 2-tuple. This first condition should be the "
+            "riboseq condition, and the second should be the rnaseq "
+            "condition. '{}: {}'".format(condition, cond))
+
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    ribo_condition = cond[0]
+    rna_condition = cond[1]
+
+    riboseq_biological_replicates = get_riboseq_replicates(config)
+    rnaseq_biological_replicates = get_rnaseq_replicates(config)
+
+    if ribo_condition not in riboseq_biological_replicates:
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: The "
+            "riboseq condition '{}' is not present in the "
+            "'riboseq_biological_replicates'.".format(ribo_condition))
+
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    if rna_condition not in rnaseq_biological_replicates:
+        msg = ("[ribo_utils.get_matching_condition_and_replicates]: The rna "
+            "condition '{}' is not present in the "
+            "'rnaseq_biological_replicates'.".format(rna_condition))
+        
+        if raise_on_error:
+            raise ValueError(msg)
+        else:
+            logger.warning(msg)
+            return None
+
+    if names_only:
+        return ribo_conditions, rna_conditions
+
+    ribo_replicates = riboseq_biological_replicates[ribo_condition]
+    rna_replicates = rnaseq_biological_replicates[rna_condition]
+
+    return ribo_condition, rna_condition, ribo_replicates, rna_replicates
+
+
+def get_criterion_condition(condition, criterion, config):
+    matching_conditions = get_matching_conditions(config)
+    if condition not in matching_conditions:
+        msg = ("[ribo_utils.get_criterion_condition]: Could not find '{}' in "
+            "'matching_conditions".format(condition))
+        raise ValueError(msg)
+
+    ribo, rna = matching_conditions[condition]
+
+    if criterion == "ribo":
+        return ribo
+    elif criterion == "rna":
+        return rna
+    else:
+        msg = ("[ribo_utils.get_criterion_condition]: The criterion '{}' is "
+            "not a valid criterion.".format(criterion))
+        raise ValueError(msg)
 
 def get_riboseq_cell_type_samples(config):
     if 'riboseq_cell_type_samples' in config:
@@ -142,6 +410,63 @@ def get_rnaseq_cell_type_samples(config):
     }
     return cell_type_samples
 
+def get_sample_name_map(config):
+    """ Extract the mapping from the '{ribo,rna}seq_sample_name_map', or create
+    a default one for all samples without an entry.
+    """
+
+    sample_name_map = _return_key_dict()
+
+    if 'riboseq_sample_name_map' in config:
+        sample_name_map.update(config['riboseq_sample_name_map'])
+
+    if 'rnaseq_sample_name_map' in config:
+        sample_name_map.update(config['rnaseq_sample_name_map'])
+
+    return sample_name_map
+
+def get_condition_name_map(config):
+    """ Extract the mapping from the 'condition_name_map' and create a default
+    one for all conditions without an entry.
+    """
+    condition_name_map = _return_key_dict()
+    if 'condition_name_map' in config:
+        condition_name_map.update(config['condition_name_map'])
+
+    return condition_name_map
+
+def filter_condition_pairs(config, allowed_conditions):
+    """ Create an iterator which yields only condition pairs for which both 
+    conditions appear in the allowed_conditions.
+
+    Parameters
+    ----------
+    config: dict (presumably loaded from a yaml config file)
+        A configuration dictionary which *must* include comparison_conditions
+
+    allowed_conditions: sequence or None
+        The conditions we care about. If None or the length is 0, then none of
+        the condition pairs are filtered (all are "yield"ed).
+
+    Yields
+    ------
+    condition_pair: 2-tuple of strings
+        The next condition pair which meets the filtering criteria
+    """
+    import misc.utils as utils
+
+    condition_pairs = config['comparison_conditions']
+
+    if (allowed_conditions is not None) and (len(allowed_conditions) > 0):
+        allowed_conditions = set(allowed_conditions)
+    else:
+        allowed_conditions = set(utils.flatten_lists(condition_pairs))
+
+    for cp in condition_pairs:
+        if (cp[0] in allowed_conditions) and (cp[1] in allowed_conditions):
+            yield cp
+
+
 
 ###
 #
@@ -155,7 +480,9 @@ default_min_metagene_bf_mean = 5
 default_max_metagene_bf_var = None
 default_min_metagene_bf_likelihood = 0.5
 
-def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=False):
+def get_periodic_lengths_and_offsets(config, name, do_not_call=False,
+        isoform_strategy=None, is_unique=True):
+
     """ This function applies a set of filters to metagene profiles to select those
         which are "periodic" based on the read counts and Bayes factor estimates.
 
@@ -194,26 +521,31 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
             on the likelihood of periodicity (see min_metagene_bf_mean description
             for more details). default: 0.5
 
-        Args:
-            config (dictionary) : the configuration information(see description)
+        Parameters
+        ----------
+        config: dictionary
+            the configuration information(see description)
 
-            name (string) : the name of the dataset in question
+        name: string
+            the name of the dataset in question
 
-            do_not_call (bool) : whether the metagene bf file should exist. If false,
-                then dummy values are returned (and a warning message is printed).
+        do_not_call: bool
+            whether the metagene bf file should exist. If false, then dummy
+            values are returned (and a warning message is printed).
 
-            is_merged (bool) : whether the "merged" transcripts are used (i.e., is
-                this for rpbp or ribo-te)
+        isoform_strategy: string
+            which strategy is used to select isoforms (relevant for B-tea only)
 
-        Returns:
-            lengths (list of strings) : all of the periodic read lengths
+        is_unique: bool
+            whether only unique reads are used in the files
 
-            offsets (list of strings) : the corresponding P-site offsets for the
-                read lengths. 
+        Returns
+        -------
+        lengths: list of strings
+            all of the periodic read lengths
 
-        Imports:
-            numpy
-            scipy.stats
+        offsets: list of strings
+            the corresponding P-site offsets for the read lengths
     """
     import numpy as np
     import scipy.stats
@@ -240,17 +572,24 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
 
     note_str = config.get('note', None)
 
-    periodic_offsets = filenames.get_periodic_offsets(config['riboseq_data'], name, 
-        is_unique=True, is_merged=is_merged, note=note_str)
+    periodic_offsets = filenames.get_periodic_offsets(
+        config['riboseq_data'],
+        name, 
+        is_unique=is_unique,
+        isoform_strategy=isoform_strategy,
+        note=note_str
+    )
     
     if not os.path.exists(periodic_offsets):
-        msg = ("The periodic offsets file does not exist. Please ensure the select-periodic-offsets "
-            "script completed successfully or specify the \"use_fixed_lengths\", \"lengths\", and "
-            "\"offsets\" values in the configuration file. '{}'".format(periodic_offsets))
+        msg = ("The periodic offsets file does not exist. Please ensure the "
+            "select-periodic-offsets script completed successfully or specify "
+            "the \"use_fixed_lengths\", \"lengths\", and \"offsets\" values "
+            "in the configuration file. '{}'".format(periodic_offsets))
 
         if do_not_call:
-            msg = msg +  ("\nThe --do-not-call flag was given, so \"dummy\" default lengths will be "
-                "used to check the remaining calls.\n")
+            msg = msg +  ("\nThe --do-not-call flag was given, so a \"dummy\" "
+                "default length (29) and offset (12) will be used to check "
+                "the remaining calls.\n")
 
             logger.warning(msg)
 
@@ -293,16 +632,7 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
         num_nans = sum(nans)
         num_predictions = len(likelihood)
 
-        msg = "Num nans: {}, num predictions: {}".format(num_nans, num_predictions)
-        logger.debug(msg)
-
-        msg = ("Using the likelihood filter. min_mean: {}, min_likelihood: {}"
-            .format(min_bf_mean, min_bf_likelihood))
-        logger.debug(msg)
-
         max_likelihood = max(likelihood[~nans])
-        msg = "Maximum likelihood: {}".format(max_likelihood)
-        logger.debug(msg)
 
         # now filter
         m_bf_likelihood = likelihood > min_bf_likelihood
@@ -319,12 +649,14 @@ def get_periodic_lengths_and_offsets(config, name, do_not_call=False, is_merged=
     if len(lengths) == 0:
         msg = ("The periodic offsets file was found, but no periodic lengths "
             "were found. Please ensure the select-periodic-offsets script "
-            "completed successfully or specify the \"use_fixed_lengths\", \"lengths\", and "
-            "\"offsets\" values in the configuration file. '{}'".format(periodic_offsets))
+            "completed successfully or specify the \"use_fixed_lengths\", "
+            "\"lengths\", and \"offsets\" values in the configuration file. "
+            "'{}'".format(periodic_offsets))
 
         if do_not_call:
-            msg = msg +  ("\nThe --do-not-call flag was given, so \"dummy\" default lengths will be "
-                "used to check the remaining calls.\n")
+            msg = msg +  ("\nThe --do-not-call flag was given, so a \"dummy\" "
+                "default length (29) and offset (12) will be used to check "
+                "the remaining calls.\n")
 
             logger.warning(msg)
 
@@ -379,6 +711,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
 
     import pysam
     import misc.bio as bio
+    import misc.bio_utils.bed_utils as bed_utils
 
     msg = "Reading BAM file"
     logger.info(msg)
@@ -394,6 +727,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
     ends = np.zeros(num_alignments, dtype=int)
     seqs = [""] * num_alignments
     strands = ["+"] * num_alignments
+    fractions = np.zeros(num_alignments, dtype=float)
 
     al_iter = tqdm.tqdm(alignments, leave=True, file=sys.stdout, total=num_alignments)
     for i, a in enumerate(al_iter):
@@ -461,7 +795,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
     map_df = map_df.sort_values(['seqname', 'start'])
 
     # and we only want the BED6 fields
-    map_df = map_df[bio.bed6_field_names]
+    map_df = map_df[bed_utils.bed6_field_names]
     
     return map_df
 
@@ -774,12 +1108,328 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
         chisq_predicted_orfs = bed_utils.get_longest_features_by_end(chisq_predicted_orfs)
     
     return (all_orfs, bf_predicted_orfs, chisq_predicted_orfs)
+   
+###
+#   Defaults for b-tea scripts
+###
+default_perm_test_min_rpkm_mean = 1
+default_perm_test_max_rpkm_var_power = 1
+
+###
+#   Field names for b-tea files
+###
+
+field_map = {
+    "ribo": "Riboseq",
+    "rna": "RNA-seq",
+    "te": "Translational Efficiency"
+}
+
+fields = sorted(field_map.keys())
+field_name_order = [field_map[f] for f in fields]
+
+def get_field_name(field):
+    """ This function maps from the field to a human-readable name.
+    """
     
+    return field_map[field]
+
+mean_field_map = {
+    "ribo": "ribo_abundance_mean_loc",
+    "rna": "rna_abundance_mean_loc",
+    "te": "log_translational_efficiency_loc"
+}
+
+var_field_map = {
+ "ribo": "ribo_abundance_var_loc",
+ "rna": "rna_abundance_var_loc",
+ "te": "log_translational_efficiency_scale"
+}
 
 ###
 # The following functions are all related. They are used to estimate p-values
 # for the KL-divergence values calculated for translational efficiency (only).
 ###
+def get_basic_filter(kl, condition_1, condition_2, field):
+    """ Mask kl to filter on the conditions and field. """
+    m_condition_1 = kl['condition_1'] == condition_1
+    m_condition_2 = kl['condition_2'] == condition_2
+    m_field = kl['field'] == field
+    m_basic = m_condition_1 & m_condition_2 & m_field
+    return m_basic
+
+def get_rpkm_mean_filter(kl, min_rpkm_mean):
+    """ Mask kl to filter on the estimated means. """
+    
+    m_min_rpkm_mean_1 = kl['mean_1'] > min_rpkm_mean
+    m_min_rpkm_mean_2 = kl['mean_2'] > min_rpkm_mean
+    m_min_rpkm_mean = m_min_rpkm_mean_1 & m_min_rpkm_mean_2
+    return m_min_rpkm_mean
+
+def get_rpkm_var_power_filter(kl, max_rpkm_var_power):
+    """ Mask kl to filter on the variances as a power of the means. """
+    import numpy as np
+    
+    m_max_rpkm_var_1 = kl['var_1'] < np.power(kl['mean_1'], max_rpkm_var_power)
+    m_max_rpkm_var_2 = kl['var_2'] < np.power(kl['mean_2'], max_rpkm_var_power)
+    m_max_rpkm_var = m_max_rpkm_var_1 & m_max_rpkm_var_2
+    return m_max_rpkm_var
+
+def get_basic_and_rpkm_filter(kl, condition_1, condition_2, field, 
+        min_rpkm_mean, max_rpkm_var_power):
+    """ Mask kl using all of the indicated filters. This handles TE as the 
+    combination of both riboseq and rnaseq.
+    """
+
+    if field == "te":
+        # first, get the genes which meet the rpkm requirements
+        m_ribo = get_basic_and_rpkm_filter(
+            kl, 
+            condition_1, 
+            condition_2, 
+            "ribo", 
+            min_rpkm_mean, 
+            max_rpkm_var_power
+        )
+        
+        m_rna = get_basic_and_rpkm_filter(
+            kl, 
+            condition_1, 
+            condition_2, 
+            "rna", 
+            min_rpkm_mean, 
+            max_rpkm_var_power
+        )
+
+        # find the gene ids that meet both filters
+        ribo_gene_ids = set(kl.loc[m_ribo, 'gene_id'].unique())
+        rna_gene_ids = set(kl.loc[m_rna, 'gene_id'].unique())
+        gene_ids = ribo_gene_ids & rna_gene_ids
+
+        # get all te rows for these conditions
+        m_basic = get_basic_filter(kl, condition_1, condition_2, "te")
+
+        # and only keep the genes which met both rpkm requirements
+        m_gene_ids = kl['gene_id'].isin(gene_ids)
+        m_all = m_basic & m_gene_ids
+
+    else:
+        m_basic = get_basic_filter(kl, condition_1, condition_2, field)
+        m_min_rpkm_mean = get_rpkm_mean_filter(kl, min_rpkm_mean)
+        m_max_rpkm_var = get_rpkm_var_power_filter(kl, max_rpkm_var_power)
+        m_all = m_basic & m_min_rpkm_mean & m_max_rpkm_var
+    return m_all
+
+###
+# These functions are all based on the old "wide" data frame format. Thus, they
+# have all been deprecated.
+###
+
+mean_format_map = {
+    "te": "log_translational_efficiency_loc_{1}",
+    "ribo": "{}_abundance_mean_loc_{}",
+    "rna": "{}_abundance_mean_loc_{}"
+}
+
+var_format_map = {
+    "te": "log_translational_efficiency_scale_{1}",
+    "ribo": "{}_abundance_var_loc_{}",
+    "rna": "{}_abundance_var_loc_{}"
+}
+
+# decorator to raise the deprecated warning
+def ribo_deprecated(func):
+    """ Issue a warning that the given function uses the "wide" df format and
+        should be replaced with the easier to work with "long" format.
+    """
+    def wrapper(*args, **kwargs):
+        msg = ("[ribo_utils.{}]: This function has been deprecated. It uses "
+            "the old \"wide\" df format. Please replace it with the "
+            "respective \"long\" df format function.".format(func.__name__))
+        logger.warning(msg)
+
+        return func(*args, **kwargs)
+    return wrapper
+
+@ribo_deprecated
+def get_mean_var_column_names(field, condition):
+    """ This function returns the name of the columns containing the mean and
+        variance for the given field and condition.
+
+        Parameters
+        ----------
+        field : string
+            The name of the field in question. Valid values are:
+                * te
+                * ribo
+                * rna
+
+        condition : string
+            The name of the condition (e.g., "sham.cm")
+
+        Returns
+        -------
+        mean_column : string
+            The name of the column containing the means for this field
+
+        var_column : string
+            The name of the column containing the variances for this field
+    """
+    mean_field = mean_format_map[field].format(field, condition)
+    var_field = var_format_map[field].format(field, condition)
+
+    return (mean_field, var_field)
+
+kl_format_map = {
+    "te": "log_translational_efficiency_{}_{}_kl_divergence",
+    "ribo": "ribo_abundance_{}_{}_kl_divergence",
+    "rna": "rna_abundance_{}_{}_kl_divergence"
+}
+
+pvalue_format_map = {
+    "te": "log_translational_efficiency_{}_{}_pvalue",
+    "ribo": "ribo_abundance_{}_{}_pvalue",
+    "rna": "rna_abundance_{}_{}_pvalue"
+}
+
+@ribo_deprecated
+def get_kl_pvalue_column_name(field, condition_1, condition_2):
+    """ This function returns the names of the columns containing the estimated
+        KL-divergence and pvalues for the two conditions and field.
+
+    Parameters
+    ----------
+    field : string
+        The name of the field in question. Valid values are:
+            * te
+            * ribo
+            * rna
+
+    condition_{1,2} : string
+        The name of the condition (e.g., "sham.cm")
+
+    Returns
+    -------
+    kl_column : string
+        The name of the column containing the KL-divergence for this field
+
+    pvalue_column : string
+        The name of the column containing the means-values for this field
+    """
+    kl_field = kl_format_map[field].format(condition_1, condition_2)
+    pvalue_field = pvalue_format_map[field].format(condition_1, condition_2)
+
+    return (kl_field, pvalue_field)
+
+significant_pvalue_format_map = {
+    "te": "significant_te_{}_{}",
+    "ribo": "significant_ribo_{}_{}",
+    "rna": "significant_rna_{}_{}"
+}
+
+@ribo_deprecated
+def get_significant_pvalue_column_name(field, condition_1, condition_2):
+    """ Column name indicating the specified estimates significantly differ
+
+    Parameters
+    ----------
+    field : string
+        The name of the field in question. Valid values are:
+            * te
+            * ribo
+            * rna
+
+    condition_{1,2} : string
+        The name of the conditions (e.g., "sham.cm")
+
+    Returns
+    -------
+    significant_column: string
+        Name of the column indicating significance
+    """
+    sig_pval_col = significant_pvalue_format_map[field]
+    sig_pval_col = sig_pval_col.format(condition_1, condition_2)
+    return sig_pval_col
+
+@ribo_deprecated
+def get_micropeptide_overlap_column_name(condition):
+    """ Column name indicating an overlap with a micropeptide
+
+    Parameters
+    ----------
+    condition: string
+        The name of the condition (e.g., "sham.cm")
+
+    Returns
+    -------
+        Name of the column indicating an overlap
+    """
+    return "has_micropeptide_overlap_{}".format(condition)
+
+log_fold_change_map = {
+    "te": "log_translational_efficiency_{}_{}_log_fold_change",
+    "ribo": "ribo_abundance_{}_{}_log_fold_change",
+    "rna": "rna_abundance_{}_{}_log_fold_change"
+}
+
+@ribo_deprecated
+def get_log_fold_change_field_name(field, condition_1, condition_2):
+    lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+    return lfc_field
+
+@ribo_deprecated
+def get_log_fold_changes(df, condition_pairs):
+    """ This function creates a new data frame which includes all of the log
+        fold changes (TE, riboseq and RNA-seq) for each of the condition
+        pairs in the given list.
+
+    The returned data frame could be joined to the original df with a
+    command like:
+
+    pd.concat([df, log_fold_changes_df], axis=1)
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        A data frame containing the "mean" fields
+
+    condition_pairs : list of 2-tuple-likes of strings
+        The pairs of conditions for which the log fold changes will be
+        included in the returns data frame
+
+    Returns
+    -------
+    log_fold_changes_df : pd.DataFrame
+        A data frame containing all of the requested log fold changes
+    """
+    import numpy as np
+    import pandas as pd
+    
+    log_fold_changes_df = pd.DataFrame()
+
+    for (condition_1, condition_2) in condition_pairs:
+        
+        field = 'te'
+        field_1 = mean_format_map[field].format(field, condition_1)
+        field_2 = mean_format_map[field].format(field, condition_2)
+        lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+        log_fold_changes_df[lfc_field] = df[field_2] - df[field_1]
+        
+        field = 'ribo'
+        field_1 = mean_format_map[field].format(field, condition_1)
+        field_2 = mean_format_map[field].format(field, condition_2)
+        lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+        log_fold_changes_df[lfc_field] = np.log(df[field_2]) - np.log(df[field_1])
+        
+        field = 'rna'
+        field_1 = mean_format_map[field].format(field, condition_1)
+        field_2 = mean_format_map[field].format(field, condition_2)
+        lfc_field = log_fold_change_map[field].format(condition_1, condition_2)
+        log_fold_changes_df[lfc_field] = np.log(df[field_2]) - np.log(df[field_1])
+               
+    return log_fold_changes_df
+
+@ribo_deprecated
 def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5):
     import numpy as np
 
@@ -824,6 +1474,7 @@ def get_variance_power_filter(kl_df, condition_1, condition_2, field, power=0.5)
         
     return m_filter
 
+@ribo_deprecated
 def get_variance_filter(kl_df, condition_1, condition_2, field, max_var=0.5):
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -855,7 +1506,7 @@ def get_variance_filter(kl_df, condition_1, condition_2, field, max_var=0.5):
         
     return m_filter
 
-
+@ribo_deprecated
 def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -887,6 +1538,7 @@ def get_mean_filter(kl_df, condition_1, condition_2, field, min_mean=1):
         
     return m_filter
 
+@ribo_deprecated
 def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, strategy='sampling'):
     import numpy as np
     import scipy.stats
@@ -982,6 +1634,7 @@ def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, st
 
     return kl, p, q
 
+@ribo_deprecated
 def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition_2, field,
                                    num_random_samples=10000, seed=8675309, use_progress_bar=False):
     
@@ -1018,18 +1671,11 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
     for i in iter_range:
         kl, p, q = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
         random_kls.append(kl)
-        random_ps.append(p)
-        random_qs.append(q)
-        
-    return random_kls, random_ps, random_qs
+                
+    return random_kls
 
-def get_pvalue(val, kls):
-    import numpy as np
 
-    pos = np.searchsorted(kls, val)
-    p = 1 - (pos/len(kls))
-    return p
-
+@ribo_deprecated
 def get_transcript_pvalues(kl_df, condition_1, condition_2, field, 
                 min_mean=1, max_var=None, var_power=None,
                 num_random_samples=10000, seed=8675309, num_cpus=1, num_groups=500):
@@ -1072,15 +1718,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
                 condition_1, condition_2, field, samples_per_group, group_seed,
                 progress_bar=True, num_groups=num_groups)
    
-    random_ks = utils.flatten_lists(random_kls)
-    random_kls = random_ks[0::3]
-    random_ps = random_ks[1::3]
-    random_qs = random_ks[2::3]
-
-    random_kls = np.concatenate(random_kls)
-    random_ps = np.concatenate(random_ps)
-    random_qs = np.concatenate(random_qs)
-
+    random_kls = utils.flatten_lists(random_kls)
     kls = np.array(sorted(random_kls))
 
     kl_field_name = "{}_{}_{}_kl_divergence".format(field, condition_1, condition_2)
@@ -1090,6 +1728,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
     
     return m_filter, pvals, random_kls, random_ps.tolist(), random_qs.tolist()
 
+@ribo_deprecated
 def get_significant_differences(condition_1, condition_2, pval_df, 
                                 alpha=0.05, min_rpkm_mean=None, max_rpkm_var=None,var_power=None):
 
@@ -1146,6 +1785,7 @@ def get_significant_differences(condition_1, condition_2, pval_df,
             numpy
 
     """
+    import numpy as np
     
     te_kl_field = "log_translational_efficiency_{}_{}_kl_divergence".format(condition_1, condition_2)
     
@@ -1219,8 +1859,53 @@ def get_significant_differences(condition_1, condition_2, pval_df,
     m_rna_sig = (pval_df[rna_pval_field] < alpha) & m_rna_filter
     m_ribo_sig = (pval_df[ribo_pval_field] < alpha) & m_ribo_filter
     
-    return (m_te_filter, m_rna_filter, m_ribo_filter, m_te_sig, m_rna_sig, m_ribo_sig)
+    filters = (m_te_filter, m_rna_filter, m_ribo_filter, m_te_sig, m_rna_sig, m_ribo_sig)
 
+    filters= [ np.array(f) for f in filters ]
+    return filters
+
+@ribo_deprecated
+def get_significance_filter(filters, field, significant_only=True):
+    """ This function returns the appropriate mask to filter on significance
+        of the given field. It assumes the filters are in the same order as the
+        output of get_significant_differences.
+
+        Parameters
+        ----------
+            filters : tuple
+                The result of the call to get_significant_differences
+
+            field : string
+                The name of the field on which to filter. Valid options are:
+                    * ribo
+                    * rna
+                    * te
+
+            is_significant : bool
+                Whether to return the "significant" filter (True, default) or 
+                the "basic" filter
+
+        Returns
+        -------
+            significant_only : boolean mask
+                The appropriate mask for filtering for significance based on the
+                given field.
+    """
+
+    # just map from the field to the index of the significant filters
+    index_map = {
+        "te": 0,
+        "rna": 1,
+        "ribo": 2
+    }
+
+    index = index_map[field]
+    if significant_only:
+        index += 3
+
+    return filters[index]
+
+@ribo_deprecated
 def get_up_and_down_masks(condition_1, condition_2, pval_df):
     """ This function finds all of the transcripts which are, respectively
         higher or lower in the first condition. That is, "up" and "down"
@@ -1248,6 +1933,8 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
                 riboseq RPKM in the first condition, respectively.
 
     """
+    import numpy as np
+
     te_1 = 'log_translational_efficiency_loc_{}'.format(condition_1)
     te_2 = 'log_translational_efficiency_loc_{}'.format(condition_2)
     
@@ -1266,155 +1953,470 @@ def get_up_and_down_masks(condition_1, condition_2, pval_df):
     m_ribo_up = pval_df[ribo_1] > pval_df[ribo_2]
     m_ribo_down = ~m_ribo_up
     
-    return m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
+    up_down_masks = m_te_up, m_te_down, m_rna_up, m_rna_down, m_ribo_up, m_ribo_down
+    up_down_masks = [ np.array(f) for f in up_down_masks ]
+    return up_down_masks
 
-###
-#   These functions are used for estimating significance (p-values) of the overlap
-#   with Mackowiak ORFs via a permutation test.
-#   
-###
+@ribo_deprecated
+def get_up_down_filter(filters, field, direction):
+    """ This function returns the appropriate mask to filter on the given field
+        in the given direction. It assumes the filters are in the same order as
+        the output of get_up_and_down_masks.
 
-def get_random_mackowiak_exact_matches(bf_filtered, bf_exons, num_random_choices, sorfs_exons):
-    """ This function performs one step of a permutation test for determining
-        p-values for the overlap of Mackowiak ORFs. In particular, given a list
-        of ORFs and a number of random ORFs to choose, this function selects 
-        that many ORFs. It then joins them to find the "longest"
-        predicted ORFs. Finally, it intersects that list with the Mackowiak ORFs.
-        The function returns the number of exact matches between the randomly
-        drawn ORFs and the Mackowiak ORFs.
-        
-        Args:
-            bf_filtered (pd.DataFrame): a data frame of ORFs (i.e., the output of 
-                estimate-orf-bayes-factors). This should already include
-                basic filtering (length, etc.)
-                
-            num_random_choices (int): the number of random ORFs to choose (this
-                should be the same as the number of ORFs predicted as translated
-                before merging into the "longest" ORFs)
-                
-            sorfs_exons (pd.DataFrame): the split exons of the Mackowiak ORFs
-                        
-        Returns:
-            int: the number of exact matches between the randomly chosen ORFs
-                and the Mackowiak ORFs
-                
-        Imports:
-            numpy
-            misc.bio_utils.bed_utils
-            time
+        Parameters
+        ----------
+            filters : tuple
+                The result of the call to get_up_and_down_masks
+
+            field : string
+                The name of the field on which to filter. Valid options are:
+                    * ribo
+                    * rna
+                    * te
+
+            direction : string
+                The direction in which to filter. Valid options are:
+                    * up
+                    * down
+
+        Returns
+        -------
+            significance_mask : boolean mask
+                The appropriate mask for filtering for significance based on the
+                given field.
     """
-    import time
-    import numpy as np
-    import misc.bio_utils.bed_utils as bed_utils
 
-    start = time.perf_counter()
-    
-    # randomly choose some of the ORFs which passed the base filter
-    random_choices = np.random.choice(len(bf_filtered), num_random_choices, replace=False)
-    
-    # convert the indices back into a mask we can use
-    m_random = np.zeros(len(bf_filtered), dtype=bool)
-    m_random[random_choices] = True
+    # just map from the field to the index of the significant filters
+    field_map = {
+        "te": 0,
+        "rna": 2,
+        "ribo": 4
+    }
 
-    t = time.perf_counter() - start
-    msg = "Time for sampling: {}".format(t)
-    logger.debug(msg)
-    
-    # merge the selected ORFs
-    random_orfs = bed_utils.get_longest_features_by_end(bf_filtered[m_random])
+    direction_map = {
+        "up": 0,
+        "down": 1
+    }
 
-    t = time.perf_counter() - start
-    msg = "Time for finding longest ORFs: {}".format(t)
-    logger.debug(msg)
+    index = field_map[field] + direction_map[direction]
 
-    #random_orfs_exons = bed_utils.split_bed12(random_orfs)
-    random_orfs_fields = ['id']
-    random_orfs_exons = random_orfs[random_orfs_fields].merge(bf_exons, on='id')
+    return filters[index]
 
-    t = time.perf_counter() - start
-    msg = "Time for splitting ORFs: {}".format(t)
-    logger.debug(msg)
-
-    # now, take the intersection with the Mackowiak ORFs
-    i_random_sorfs = bed_utils.get_all_exact_bed_matches(random_orfs_exons, sorfs_exons)
-
-    t = time.perf_counter() - start
-    msg = "Time for finding exact matches: {}".format(t)
-    logger.debug(msg)
-    
-    # and return the number of exact matches
-    num_exact_matches = len(i_random_sorfs)
-    return num_exact_matches
-
-
-def get_mackowiak_background(batch, num_random_samples, 
-                             bf_filtered,
-                             num_random_choices, 
-                             sorfs_file,
-                             progress_bar=False):
-
-    """ This function draws the specified number of random samples for a 
-        permutation test using get_random_mackowiak_exact_matches. It is mostly
-        just a wrapper around that function that is convenient for parallel
-        calls.
-
-        Args:
-            batch (int): the index of this set of samples
-
-            num_random_samples (int): the number of random samples to draw
-
-            progress_bar (bool): whether to show a progress bar
-
-            the rest are the same as for get_random_mackowiak_exact_matches
-
-        Returns:
-            np.array of ints: the number of exact matches from each random
-                sample
-
-        Imports:
-            misc.bio_utils.bed_utils
-            numpy
-            tqdm (if a progress bar is used)
-            sys (if a progress bar is used)
+def melt_te_df(te):
+    """ Melt a data frame from the translational efficiency estimations
+    to a long df suitable for use with seaborn, etc.
     """
-    import sys
-    import time
+    
+    # we only want to keep the mean and var estimates
+    mean_fields_to_keep = [mean_field_map[f] for f in fields]
+    var_fields_to_keep = [var_field_map[f] for f in fields]
+    fields_to_keep = mean_fields_to_keep + var_fields_to_keep
 
-    import numpy as np
+    # but we need this as a hierarchical index
+    mean_fields = [(f, 'mean') for f in fields]
+    var_fields = [(f, 'var') for f in fields]
+    hierarchical_fields = mean_fields + var_fields
 
+    # drop the rest of the fields, except gene_id
+    te_df = te.set_index('gene_id')
+    te_df = te_df[fields_to_keep]
+
+    # add the multi-index for the columns
+    te_df.columns = pd.MultiIndex.from_tuples(hierarchical_fields)
+
+    # bring the gene_id back
+    te_df = te_df.stack(level=0)
+    te_df.index.names = ["gene_id", "field"]
+    te_df = te_df.reset_index(drop=False)
+
+    # go ahead and add the pretty name
+    te_df['field_name'] = te_df['field'].map(field_map)
+
+    return te_df
+
+def get_bitseq_estimates(
+        config,
+        isoform_strategy,
+        bitseq_id_field='transcript_id',
+        strings_to_remove=['.cds-only', '.merged']):
+    """ Load the bitseq abundance estimates into a single long data frame.
+
+    Parameters
+    ----------
+    config: dict-like
+        The configuration for the project, presumably from the yaml file
+
+    isoform_strategy: str
+        The strategy for handling transcript isoforms
+
+    bitseq_id_field: str
+        Name for the "transcript_id" field (second column) in bitseq tr file
+
+    strings_to_remove: list of strings
+        A list of strings to replace with "" in the bitseq ids
+
+    Returns
+    -------
+    bitseq_estimates: pd.DataFrame
+        A data frame containing the following columns
+
+            * rpkm_{mean,var}: the bitseq estimates
+            * sample: the name of the respective sample
+            * type: "ribo" or "rna"
+    """
+    import misc.bio as bio
     import tqdm
+    
+    msg = "Reading the bitseq tr info file"
+    logger.info(msg)
+
+    # check which transcript file to load
+    is_merged = False
+    if isoform_strategy == "merged":
+        is_merged = True
+
+    # and get the file
+    transcript_fasta = filenames.get_transcript_fasta(
+        config['genome_base_path'], 
+        config['genome_name'], 
+        is_annotated=True, 
+        is_merged=is_merged, 
+        is_cds_only=True
+    )
+
+    tr_info = filenames.get_bitseq_transcript_info(transcript_fasta)
+    bitseq_tr = bio.read_bitseq_tr_file(tr_info)
+
+    # we need to remove all of the indicated strings from the ids
+    for to_remove in strings_to_remove:
+        tids = bitseq_tr['transcript_id'].str.replace(to_remove, "")
+        bitseq_tr['transcript_id'] = tids
+
+    bitseq_tr = bitseq_tr.rename(columns={'transcript_id': bitseq_id_field})
+
+    note = config.get('note', None)
+    
+    all_dfs = []
+    
+    msg = "Reading riboseq BitSeq estimates"
+    logger.info(msg)
+    
+    is_unique = 'keep_riboseq_multimappers' not in config
+    
+    it = tqdm.tqdm(config['riboseq_samples'].items())
+    for name, file in it:
+
+        lengths, offsets = get_periodic_lengths_and_offsets(
+            config, 
+            name,
+            isoform_strategy=isoform_strategy, 
+            is_unique=is_unique
+        )
+
+        bitseq_rpkm_mean = filenames.get_riboseq_bitseq_rpkm_mean(
+            config['riboseq_data'], 
+            name, 
+            is_unique=is_unique, 
+            is_transcriptome=True, 
+            is_cds_only=True,
+            length=lengths, 
+            offset=offsets, 
+            isoform_strategy=isoform_strategy, 
+            note=note
+        )
+
+        field_names = ['rpkm_mean', 'rpkm_var']
+        bitseq_rpkm_mean_df = bio.read_bitseq_means(
+            bitseq_rpkm_mean,
+            names=field_names
+        )
+
+        bitseq_rpkm_mean_df['sample'] = name
+        bitseq_rpkm_mean_df['type'] = 'ribo'
+        bitseq_rpkm_mean_df[bitseq_id_field] = bitseq_tr[bitseq_id_field]
+
+        all_dfs.append(bitseq_rpkm_mean_df)
+
+
+    # now, the rnaseq    
+    msg = "Reading RNA-seq BitSeq estimates"
+    logger.info(msg)
+    
+    is_unique = ('remove_rnaseq_multimappers' in config)
+    
+    it = tqdm.tqdm(config['rnaseq_samples'].items())
+    for name, data in it:
+
+        bitseq_rpkm_mean = filenames.get_rnaseq_bitseq_rpkm_mean(
+            config['rnaseq_data'], 
+            name, 
+            is_unique=is_unique, 
+            is_transcriptome=True, 
+            is_cds_only=True,
+            isoform_strategy=isoform_strategy, 
+            note=note
+        )
+
+        field_names = ['rpkm_mean', 'rpkm_var']
+        bitseq_rpkm_mean_df = bio.read_bitseq_means(
+            bitseq_rpkm_mean,
+            names=field_names
+        )
+
+        bitseq_rpkm_mean_df['sample'] = name
+        bitseq_rpkm_mean_df['type'] = 'rna'
+        bitseq_rpkm_mean_df[bitseq_id_field] = bitseq_tr[bitseq_id_field]
+
+        all_dfs.append(bitseq_rpkm_mean_df)
+
+    
+    msg = "Joining estimates into long data frame"
+    logger.info(msg)
+    
+    long_df = pd.concat(all_dfs)
+    long_df = long_df.reset_index(drop=True)
+    return long_df
+
+def update_gene_id_from_transcript_id(df:pd.DataFrame, config:dict, args=None):
+    """ Assuming "gene_id" is actually a transcript id, replace it
+    with the actual gene identifier.
+    
+    This function is used in the case of the "all" isoform
+    strategy when downstream analysis actually needs a gene
+    identifier.
+    
+    Parameters
+    ----------
+    df: pd.DataFrame
+        A data frame which contains a "gene_id" field which actually
+        contains transcript identifiers. For example, the latter parts
+        of the B-tea pipeline produce data frames like this with
+        the "all" isoform strategy
+        
+    config: dict
+        Configuration options
+        
+    args: argparse.Namespace or None
+        The logging options from the command line. pyensembl likes
+        to overwrite these, so they will be reset.
+        
+    Returns
+    -------
+    updated_df: pd.DataFrame
+        A data frame in which the 'gene_id' column is moved to a
+        'transcript_id' column, and the 'gene_id' column is updated
+        to include  actual gene identifiers
+    """
+    import misc.bio_utils.pyensembl_utils as pyensembl_utils
+
+    msg = "Loading Ensembl annotations"
+    logger.info(msg)
+    
+    ensembl = pyensembl_utils.get_genome(
+        config['genome_name'],
+        config['gtf'],
+        logging_args = args
+    )
+    
+    msg = "Finding the gene ids for each transcript id"
+    logger.info(msg)
+    
+    gene_ids = set(df['gene_id'])
+    transcript_gene_mapping = pyensembl_utils.get_gene_ids_of_transcript_ids(
+        gene_ids, ensembl)
+    
+    msg = "Adding gene ids to data frame"
+    logger.info(msg)
+    
+    df['transcript_id'] = df['gene_id']
+    df = df.drop('gene_id', 1)
+    df = df.merge(transcript_gene_mapping, on='transcript_id')
+    
+    return df
+
+###
+#   These are functions for retrieving the dominant isoform for
+#   each gene and condition.
+###
+
+def _get_matching_condition(row, condition_field, config):
+    condition = row[condition_field]
+    field = row['field']
+    
+    # use the ribo conditions for te
+    if field == "te":
+        field = "ribo"
+    
+    return get_criterion_condition(condition, field, config)
+
+def _add_matching_conditions(pvalues, config):
+    """ Add the "matching" conditions for both conditions. """
+    import misc.parallel as parallel
+
+    # turn off logging; we already know we have matching conditions
+    logger_level = logger.getEffectiveLevel()
+
+    logger.setLevel("WARNING")
+    matching_condition_1 = parallel.apply_df_simple(
+        pvalues,
+        _get_matching_condition,
+        "condition_1",
+        config
+    )
+
+    matching_condition_2 = parallel.apply_df_simple(
+        pvalues,
+        _get_matching_condition,
+        "condition_2",
+        config
+    )
+
+    pvalues['matching_condition_1'] = matching_condition_1
+    pvalues['matching_condition_2'] = matching_condition_2
+
+    logger.setLevel(logger_level)
+    
+    return pvalues
+
+def _add_transcript_id(pvalues, abundances):
+    """ Use the gene ID an dominant isoform information
+    to pull back the transcript id for each "matching" condition.
+    """
+    
+    left_on=['matching_condition_1', 'gene_id', 'field']
+    right_on=['condition', 'gene_id', 'field']
+
+    pvalues = pvalues.merge(abundances, left_on=left_on, right_on=right_on)
+    pvalues = pvalues.rename(columns={"transcript_id": "transcript_id_1"})
+    pvalues = pvalues.drop('condition', 1)
+
+    left_on=['matching_condition_2', 'gene_id', 'field']
+    pvalues = pvalues.merge(abundances, left_on=left_on, right_on=right_on)
+    pvalues = pvalues.rename(columns={"transcript_id": "transcript_id_2"})
+    pvalues = pvalues.drop('condition', 1)
+    
+    return pvalues
+
+def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict, args):
+    """ Add the transcript id for the dominant isoform in each condition.
+    
+    This function is really only intended to be used with the final pvalues
+    data frame from B-tea.
+    """
+    
+    # now, we need to get the transcript ids for condition_1 and condition_2
+    abundance_fields_to_keep = [
+        'type',
+        'transcript_id',
+        'gene_id',
+        'condition'
+    ]
+
+    msg = "Reading abundances"
+    logger.info(msg)
+
+    note = config.get('note')
+    abundances = filenames.get_abundances(
+        config['translational_efficiency_data'],
+        isoform_strategy=args.isoform_strategy,
+        note=note
+    )
+
+    abundances = pd.read_csv(abundances)
+    abundances = abundances[abundance_fields_to_keep]
+    abundances = abundances.drop_duplicates()
+    abundances = abundances.rename(columns={"type": "field"})
+    
+    pvalues = _add_matching_conditions(pvalues, config)
+    pvalues = _add_transcript_id(pvalues, abundances)
+    return pvalues
+
+###
+#   End of dominant isoform extraction functions
+###
+
+
+def get_overlap_data_frame(unique_file, multimappers_file):
+    import pandas as pd
     import misc.bio_utils.bed_utils as bed_utils
 
-    start = time.perf_counter()
-    
-    sorfs = bed_utils.read_bed(sorfs_file)
-    t = time.perf_counter() - start
-    msg = "Time to read Mackowiak ORFs: {}".format(t)
-    logger.debug(msg)
+    msg = "Reading predictions with unique mappers"
+    logger.info(msg)
+    unique = bed_utils.read_bed(unique_file)
 
-    sorfs_exons = bed_utils.split_bed12(sorfs)
-    t = time.perf_counter() - start
-    msg = "Time to split Mackowiak ORFs: {}".format(t)
-    logger.debug(msg)
-    
-    bf_exons = bed_utils.split_bed12(bf_filtered)
-    t = time.perf_counter() - start
-    msg = "Time to split ORFs: {}".format(t)
-    logger.debug(msg)
-    
-    ret = np.zeros(num_random_samples, dtype=int)
-        
-    it = range(num_random_samples)
-    if progress_bar:
-        import sys
-        import tqdm
-        it = tqdm.tqdm(it, leave=True, file=sys.stdout, total=num_random_samples)
-    
-    for i in it:
-        num_exact_matches = get_random_mackowiak_exact_matches(bf_filtered,
-                                                               bf_exons,
-                                                               num_random_choices, 
-                                                               sorfs_exons)
-        ret[i] = num_exact_matches
-        
-    return ret
+    msg = "Reading predictions with multimappers"
+    logger.info(msg)
+    multimappers = bed_utils.read_bed(multimappers_file)
+
+    msg = "Splitting predictions with multimappers"
+    logger.info(msg)
+    multimappers_exons = bed_utils.split_bed12(multimappers)
+
+    msg = "Splitting predictions with unique mappers"
+    logger.info(msg)
+    unique_exons = bed_utils.split_bed12(unique)
+
+    msg = "Finding overlap"
+    logger.info(msg)
+    overlap = bed_utils.get_bed_overlaps(unique, multimappers, 
+        exons_a=unique_exons, exons_b=multimappers_exons)
+
+    msg = "Constructing data frame with overlaps and ORFs from each prediction set"
+    logger.info(msg)
+
+    unique_with_overlap = {o.a_info for o in overlap}
+    multimapper_with_overlap = {o.b_info for o in overlap}
+
+    overlap_df = pd.DataFrame(overlap)
+    overlap_df = overlap_df.rename(columns={
+        "a_fraction":"Unique Coverage", "b_fraction": "Multimapper Coverage"
+    })
+    overlap_df['category'] = 'overlap'
+
+    m_unique_with_overlap = unique['id'].isin(unique_with_overlap)
+    m_multimapper_with_overlap = multimappers['id'].isin(multimapper_with_overlap)
+
+    unique_no_overlap = unique.loc[~m_unique_with_overlap, 'id']
+    multimapper_no_overlap = multimappers.loc[~m_multimapper_with_overlap, 'id']
+
+    unique_df = pd.DataFrame()
+    unique_df['a_info'] = unique_no_overlap
+    unique_df['b_info'] = ""
+    unique_df['overlap'] = 0
+    unique_df['Unique Coverage'] = 0
+    unique_df['Multimapper Coverage'] = 0
+    unique_df['category'] = 'unique_only'
+
+    multimapper_df = pd.DataFrame()
+    multimapper_df['a_info'] = ""
+    multimapper_df['b_info'] = multimapper_no_overlap
+    multimapper_df['overlap'] = 0
+    multimapper_df['Unique Coverage'] = 0
+    multimapper_df['Multimapper Coverage'] = 0
+    multimapper_df['category'] = 'multimapper_only'
+    joined_df = pd.concat([overlap_df, unique_df, multimapper_df])
+
+    msg = "Adding expression, etc., to data frame"
+    logger.info(msg)
+
+    joined_df = joined_df.merge(unique, left_on="a_info", right_on="id", 
+        suffixes=['', '_unique'], how='left')
+
+    to_rename = {c: "{}_unique".format(c) for c in unique.columns}
+    joined_df = joined_df.rename(columns=to_rename)
+
+    joined_df = joined_df.merge(multimappers, left_on="b_info", right_on="id", 
+        suffixes=['', '_multimappers'], how='left')
+
+    to_rename = {c: "{}_multimappers".format(c) for c in multimappers.columns}
+    joined_df = joined_df.rename(columns=to_rename)
+
+    ui = joined_df['x_1_sum_unique'].divide(joined_df['profile_sum_unique']) 
+    joined_df['inframe_unique'] = ui
+
+    mi = joined_df['x_1_sum_multimappers'].divide(joined_df['profile_sum_multimappers'])
+    joined_df['inframe_multimappers'] = mi
+
+    joined_df = joined_df.fillna(0)
+
+    return joined_df
