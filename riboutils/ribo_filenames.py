@@ -1204,14 +1204,6 @@ def get_te_pvalues(
     ])
     return os.path.join(base_path, fn)
 
-def get_te_pvalues(base_path, name, is_merged=False, note=None):
-
-    m = get_merged_string(is_merged)
-    n = get_note_string(note)
-    fn = '{}{}{}.te-pvalues.csv.gz'.format(name, m, n)
-    return os.path.join(base_path, fn)
-
-
 def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
         is_merged=False, is_isoforms=False, image_type='pdf', note=None):
 

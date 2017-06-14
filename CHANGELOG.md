@@ -4,6 +4,10 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## In progress
+### Fixed
+- Removed duplicate definition of `get_te_values` filename
+
 ## [0.2.3] - 2017-06-13
 ### Updated
 - All references to `misc.bio_utils` replaced with `bio_utils`
