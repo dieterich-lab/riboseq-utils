@@ -702,7 +702,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
             pandas
             tqdm
             pysam
-            misc.bio
+            bio_utils.bio
     """
     import sys
     import numpy as np
@@ -710,8 +710,8 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
     import tqdm
 
     import pysam
-    import misc.bio as bio
-    import misc.bio_utils.bed_utils as bed_utils
+    import bio_utils.bio as bio
+    import bio_utils.bed_utils as bed_utils
 
     msg = "Reading BAM file"
     logger.info(msg)
@@ -1068,13 +1068,13 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
                 profile, length, frame, chisq_alpha filters
 
         Imports:
-            misc.bio
+            bio_utils.bio
             numpy
             scipy.stats
 
     """
-    import misc.bio as bio
-    import misc.bio_utils.bed_utils as bed_utils
+    import bio_utils.bio as bio
+    import bio_utils.bed_utils as bed_utils
     import numpy as np
     import scipy.stats
 
@@ -2064,7 +2064,7 @@ def get_bitseq_estimates(
             * sample: the name of the respective sample
             * type: "ribo" or "rna"
     """
-    import misc.bio as bio
+    import bio_utils.bio as bio
     import tqdm
     
     msg = "Reading the bitseq tr info file"
@@ -2207,7 +2207,7 @@ def update_gene_id_from_transcript_id(df:pd.DataFrame, config:dict, args=None):
         'transcript_id' column, and the 'gene_id' column is updated
         to include  actual gene identifiers
     """
-    import misc.bio_utils.pyensembl_utils as pyensembl_utils
+    import bio_utils.pyensembl_utils as pyensembl_utils
 
     msg = "Loading Ensembl annotations"
     logger.info(msg)
@@ -2338,7 +2338,7 @@ def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict, args):
 
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd
-    import misc.bio_utils.bed_utils as bed_utils
+    import bio_utils.bed_utils as bed_utils
 
     msg = "Reading predictions with unique mappers"
     logger.info(msg)

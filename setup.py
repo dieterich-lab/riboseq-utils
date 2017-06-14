@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 console_scripts = [
     'extract-metagene-profiles=riboutils.extract_metagene_profiles:main',
@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='riboutils',
-        version='0.2.2',
+        version='0.2.3',
         description="This package contains utilities for other ribosome profiling projects.",
         long_description=readme(),
         keywords="ribosome profiling utilities translation",
@@ -20,7 +20,7 @@ setup(name='riboutils',
         author="Brandon Malone",
         author_email="bmmalone@gmail.com",
         license='MIT',
-        packages=['riboutils'],
+        packages=find_packages(),
         install_requires = [
             'numpy',
             'pandas',
@@ -28,7 +28,9 @@ setup(name='riboutils',
             'tqdm',
             'appdirs',
             'statsmodels',
-            'misc[bio]'
+            'pyyaml',
+            'misc',
+            'bio-utils'
         ],
         extras_require = {
         },
