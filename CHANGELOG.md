@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## In progress
+### Updated
+- The `bootstrap-ribo-analysis` script to use `misc.pandas_utils`
+
 ### Fixed
 - Removed duplicate definition of `get_te_values` filename
 

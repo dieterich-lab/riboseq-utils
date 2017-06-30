@@ -6,6 +6,7 @@ import pandas as pd
 import yaml
 
 import misc.parallel as parallel
+import misc.pandas_utils as pandas_utils
 import misc.utils as utils
 
 import logging
@@ -243,7 +244,7 @@ def main():
         "random_field": str
     }
 
-    sample_sheet = utils.read_df(args.sample_sheet, 
+    sample_sheet = pandas_utils.read_df(args.sample_sheet, 
         filetype=args.sample_sheet_file_type, 
         skip_blank_lines=True, 
         sheet=args.sheet_name, 
@@ -307,14 +308,14 @@ def main():
 
     # finally, create the yaml config file
     m_riboseq = sample_sheet['sample_type'].isin(args.riboseq_sample_types)
-    riboseq_samples = utils.dataframe_to_dict(
+    riboseq_samples = pandas_utils.dataframe_to_dict(
         sample_sheet[m_riboseq], 
         'replicate_name', 
         'replicate_filename'
     )
 
     m_rnaseq = sample_sheet['sample_type'].isin(args.rnaseq_sample_types)
-    rnaseq_samples = utils.dataframe_to_dict(
+    rnaseq_samples = pandas_utils.dataframe_to_dict(
         sample_sheet[m_rnaseq], 
         'replicate_name', 
         'replicate_filename'
