@@ -4,9 +4,16 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## In progress
+## [0.2.4] - 2017-07-17
 ### Updated
-- The `bootstrap-ribo-analysis` script to use `misc.pandas_utils`
+- The `bootstrap-ribo-analysis` script to use `misc.pandas_utils`. Please see
+    [Issue #4](https://github.com/dieterich-lab/riboseq-utils/issues/4) for
+    more details.
+
+- The `bootstrap-ribo-analysis` script to include replicate and condition
+    names and to output the entries in a user-friendly order. Please see
+    [Issue #5](https://github.com/dieterich-lab/riboseq-utils/issues/5) for
+    more details.
 
 ### Fixed
 - Removed duplicate definition of `get_te_values` filename
