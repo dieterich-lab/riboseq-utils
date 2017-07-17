@@ -582,6 +582,28 @@ def get_raw_data_fastqc_data(base_path, filename):
     p = os.path.join(rdp, fastqc_folder, 'fastqc_data.txt')
     return p
 
+### ribodiff
+def get_ribodiff_base(base, condition_1, condition_2, is_unique=False):
+    unique = get_unique_string(is_unique)
+    subfolder = "{}_{}{}".format(condition_1, condition_2, unique)
+    return os.path.join(base, 'ribodiff', subfolder, "{}_{}".format(condition_1, condition_2))
+
+def get_ribodiff_design(base, condition_1, condition_2, is_unique=False):
+    base = get_ribodiff_base(base, condition_1, condition_2, is_unique=is_unique)
+    f = base + ".experimental_design.csv"
+    return f
+
+def get_ribodiff_gene_count_table(base, condition_1, condition_2, is_unique=False):
+    base = get_ribodiff_base(base, condition_1, condition_2, is_unique=is_unique)
+    f = base + ".gene_count_table.tab"
+    return f
+
+def get_ribodiff_results(base, condition_1, condition_2, is_unique=False):
+    base = get_ribodiff_base(base, condition_1, condition_2, is_unique=is_unique)
+    f = base + ".results.tab"
+    return f
+
+
 ### riboseq
 
 # b
@@ -1181,7 +1203,6 @@ def get_te_pvalues(
         ".csv.gz"
     ])
     return os.path.join(base_path, fn)
-
 
 def get_te_rpkm_fold_change_image_file(base_path, condition_1, condition_2, 
         is_merged=False, is_isoforms=False, image_type='pdf', note=None):

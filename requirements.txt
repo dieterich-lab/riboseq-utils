@@ -1,0 +1,3 @@
+git+https://github.com/bmmalone/pymisc-utils.git#egg=misc
+git+https://github.com/bmmalone/pybio-utils.git#egg=bio_utils
+.

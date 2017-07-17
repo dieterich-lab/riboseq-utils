@@ -1,11 +1,13 @@
 #! /usr/bin/env python3
 
 import argparse
+import collections
 import os
 import pandas as pd
 import yaml
 
 import misc.parallel as parallel
+import misc.pandas_utils as pandas_utils
 import misc.utils as utils
 
 import logging
@@ -22,6 +24,11 @@ default_sample_sheet_file_type = 'AUTO'
 default_sheet_name = "Sheet1"
 default_riboseq_sample_types = ['riboseq']
 default_rnaseq_sample_types = ['rna-seq', 'total-rna-seq']
+
+def setup_yaml():
+  """ https://stackoverflow.com/a/8661021 """
+  represent_dict_order = lambda self, data:  self.represent_mapping('tag:yaml.org,2002:map', data.items())
+  yaml.add_representer(collections.OrderedDict, represent_dict_order)    
 
 def get_sample_name(condition:str, sample_type:str, cell_type:str=None, 
         replicate:str=None, lane:str=None):
@@ -78,6 +85,66 @@ def get_sample_name(condition:str, sample_type:str, cell_type:str=None,
         
     return sample_name
 
+
+def get_sample_text(condition:str, sample_type:str, cell_type:str=None, 
+        replicate:str=None, lane:str=None):
+    """ Construct the text for a sample name by concatenating the respective
+    properties of the sample.
+    
+    The format of the name is:
+        [cell-type, ] <condition>, <sample_type> [(<replicate>)] [(lane: <lane>)]
+        
+    The optional parts are skipped if the respective value is None.
+    
+    Parameters
+    ----------
+    condition: string
+        The name of the condition for the sample, e.g., "sham.cm"
+        
+    sample_type: string
+        The type of the sample, e.g., "riboseq"
+        
+    cell_type: string
+        The type of cell (tissue, etc.) from which the sample came, e.g., "cm"
+        
+    replicate: string
+        An identifier for the (biological) replicate, e.g., "mouse-403"
+        
+    lane: string
+        An identifier for the lane of the sample, e.g., "2"
+        
+    Returns
+    -------
+    sample_name_text: string, or None
+        The name, constructed as indicated above. If condition is None, NaN, or
+        a zero-length string, then None is returned.
+    """
+    if pd.isnull(condition):
+        return None
+    
+    if condition is None:
+        return None
+
+    if len(condition) == 0:
+        return None
+
+    sample_name = ""
+
+    if cell_type is not None:
+        sample_name = "{}{}, ".format(sample_name, cell_type)
+
+    sample_name = "{}{}, {} ".format(sample_name, str(condition), str(sample_type))
+        
+    if replicate is not None:
+        sample_name = "{}({}) ".format(sample_name, str(replicate))
+        
+    if lane is not None:
+        sample_name = "{}(lane: {})".format(sample_name, str(lane))
+        
+    sample_name = sample_name.strip()
+    return sample_name
+
+
 def _get_full_condition_name_helper(row):
     condition = row.get("condition")
     sample_type = row.get("sample_type")
@@ -100,6 +167,30 @@ def _get_replicate_name_helper(row):
     )
 
     return replicate_name
+
+def _get_full_condition_text_helper(row):
+    condition = row.get("condition")
+    sample_type = row.get("sample_type")
+    cell_type = row.get("cell_type")
+    
+    full_condition_name = get_sample_text(condition, sample_type, cell_type)
+    return full_condition_name
+
+def _get_replicate_text_helper(row):
+    condition = row.get("condition")
+    sample_type = row.get("sample_type")
+    cell_type = row.get("cell_type")
+    replicate = row.get("replicate")
+    
+    replicate_name = get_sample_text(
+        condition, 
+        sample_type, 
+        cell_type, 
+        replicate
+    )
+
+    return replicate_name
+
 
 def _get_replicate_filename_helper(row):    
     location = row.get("location")
@@ -153,7 +244,7 @@ def _create_symlink(row, overwrite):
 
     # create the necessary directory structure, but do not overwrite any
     # existing file, since it could be "real" data
-    utils.create_symlink(row['sample_filename'], row['filename'], 
+    shell_utils.create_symlink(row['sample_filename'], row['filename'], 
         remove=overwrite, create=True)
 
 def pool_lanes(g):
@@ -177,7 +268,16 @@ def get_condition_replicates(g):
     
     return {full_condition_name: all_replicates}
 
+def get_condition_text(g):
+    row = g.iloc[0]
+    full_condition_name = row['full_condition_name']
+    text = _get_full_condition_text_helper(row)
+    return {full_condition_name: text}
+
+
 def main():
+    # make sure we write the config file in a user-friendly order
+    setup_yaml()
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description="Create symlinks and partial config file for samples and "
         "replicates from a csv sample sheet. The csv file must include the "
@@ -243,7 +343,7 @@ def main():
         "random_field": str
     }
 
-    sample_sheet = utils.read_df(args.sample_sheet, 
+    sample_sheet = pandas_utils.read_df(args.sample_sheet, 
         filetype=args.sample_sheet_file_type, 
         skip_blank_lines=True, 
         sheet=args.sheet_name, 
@@ -287,6 +387,12 @@ def main():
         _get_replicate_name_helper
     )
 
+    sample_sheet['replicate_text'] = parallel.apply_df_simple(
+        sample_sheet, 
+        _get_replicate_text_helper
+    )
+
+
     sample_sheet['replicate_filename'] = parallel.apply_df_simple(
         sample_sheet, 
         _get_replicate_filename_helper
@@ -307,18 +413,31 @@ def main():
 
     # finally, create the yaml config file
     m_riboseq = sample_sheet['sample_type'].isin(args.riboseq_sample_types)
-    riboseq_samples = utils.dataframe_to_dict(
+    riboseq_samples = pandas_utils.dataframe_to_dict(
         sample_sheet[m_riboseq], 
         'replicate_name', 
         'replicate_filename'
     )
 
+    riboseq_sample_text = pandas_utils.dataframe_to_dict(
+        sample_sheet[m_riboseq],
+        'replicate_name',
+        'replicate_text'
+    )
+
     m_rnaseq = sample_sheet['sample_type'].isin(args.rnaseq_sample_types)
-    rnaseq_samples = utils.dataframe_to_dict(
+    rnaseq_samples = pandas_utils.dataframe_to_dict(
         sample_sheet[m_rnaseq], 
         'replicate_name', 
         'replicate_filename'
     )
+
+    rnaseq_sample_text = pandas_utils.dataframe_to_dict(
+        sample_sheet[m_rnaseq], 
+        'replicate_name', 
+        'replicate_text'
+    )
+
 
     msg = "Grouping replicates by condition"
     logger.info(msg)
@@ -331,46 +450,66 @@ def main():
         _get_full_condition_name_helper
     )
         
-    ribo_condition_groups = sample_sheet[m_riboseq].groupby('full_condition_name')
+    ribo_groups = sample_sheet[m_riboseq].groupby('full_condition_name')
     ribo_condition_groups = parallel.apply_parallel_groups(
-        ribo_condition_groups, 
+        ribo_groups, 
         num_procs, 
         get_condition_replicates
     )
 
     ribo_condition_groups = utils.merge_dicts(*ribo_condition_groups)
 
-    rna_condition_groups = sample_sheet[m_rnaseq].groupby('full_condition_name')
+    ribo_condition_text = parallel.apply_parallel_groups(
+        ribo_groups, 
+        num_procs, 
+        get_condition_text
+    )
+
+    ribo_condition_text = utils.merge_dicts(*ribo_condition_text)
+
+    rna_groups = sample_sheet[m_rnaseq].groupby('full_condition_name')
     rna_condition_groups = parallel.apply_parallel_groups(
-        rna_condition_groups, 
+        rna_groups, 
         num_procs, 
         get_condition_replicates
     )
 
     rna_condition_groups = utils.merge_dicts(*rna_condition_groups)
 
+    rna_condition_text = parallel.apply_parallel_groups(
+        rna_groups, 
+        num_procs, 
+        get_condition_text
+    )
+
+    rna_condition_text = utils.merge_dicts(*rna_condition_text)
+
     msg = "Writing partial config file"
     logger.info(msg)
-    config = {
-        'project_name': "<PROJECT_NAME>",
-        'note': "<NOTE>",
-        'gtf': "<GTF>",
-        'fasta': "<FASTA>",
-        'star_index': "<STAR_INDEX>",
-        'ribosomal_index': "<RIBOSOMAL_INDEX>",
-        'ribosomal_fasta': "<RIBOSOMAL_FASTA>",
-        'genome_base_path': "<GENOME_BASE_PATH>",
-        'genome_name': "<GENOME_NAME>",
-        'orf_note': "<ORF_NOTE>",
-        'adapter_file': "<RIBO_ADAPTER_FILE>",
-        'rna_adapter_file': "<RNA_ADAPTER_FILE>",
-        'riboseq_data': "<RIBO_DATA_PATH>",
-        'rnaseq_data': "<RNA_DATA_PATH>",
-        'riboseq_samples': riboseq_samples,
-        'rnaseq_samples': rnaseq_samples,
-        'riboseq_biological_replicates': ribo_condition_groups,
-        'rnaseq_biological_replicates': rna_condition_groups
-    }
+    config = collections.OrderedDict([
+        ('project_name', "<PROJECT_NAME>"),
+        ('note', "<NOTE>"),
+        ('gtf', "<GTF>"),
+        ('fasta', "<FASTA>"),
+        ('star_index', "<STAR_INDEX>"),
+        ('ribosomal_index', "<RIBOSOMAL_INDEX>"),
+        ('ribosomal_fasta', "<RIBOSOMAL_FASTA>"),
+        ('genome_base_path', "<GENOME_BASE_PATH>"),
+        ('genome_name', "<GENOME_NAME>"),
+        ('orf_note', "<ORF_NOTE>"),
+        ('adapter_file', "<RIBO_ADAPTER_FILE>"),
+        ('rna_adapter_file', "<RNA_ADAPTER_FILE>"),
+        ('riboseq_data', "<RIBO_DATA_PATH>"),
+        ('rnaseq_data', "<RNA_DATA_PATH>"),
+        ('riboseq_samples', riboseq_samples),
+        ('rnaseq_samples', rnaseq_samples),
+        ('riboseq_biological_replicates', ribo_condition_groups),
+        ('rnaseq_biological_replicates', rna_condition_groups),
+        ('riboseq_sample_name_map', riboseq_sample_text),
+        ('rnaseq_sample_name_map', rnaseq_sample_text),
+        ('riboseq_condition_name_map', ribo_condition_text),
+        ('rnaseq_condition_name_map', rna_condition_text)
+    ])
 
     with open(args.out, 'w') as out:
         yaml.dump(config, out, default_flow_style=False)

@@ -101,6 +101,24 @@ def get_all_transcript_ids(orfs, sep="_", num_cpus=1, progress_bar=False):
     return transcript_ids
 
 ###
+#   The following functions are helpful for parsing information out of the identifiers.
+###
+def get_transcript_id(orf_id, sep="_"):
+    return orf_id.split(sep)[0]
+
+def get_all_transcript_ids(orfs, sep="_", num_cpus=1, progress_bar=False):
+    import misc.parallel as parallel
+
+    transcript_ids = parallel.apply_parallel_iter(  orfs['id'],
+                                                    num_cpus,
+                                                    get_transcript_id,
+                                                    sep,
+                                                    progress_bar=progress_bar)
+
+    return transcript_ids
+
+
+###
 #   The following functions are all used for parsing replicates, etc., from the config file.
 ###
 
@@ -684,7 +702,7 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
             pandas
             tqdm
             pysam
-            misc.bio
+            bio_utils.bio
     """
     import sys
     import numpy as np
@@ -692,8 +710,8 @@ def get_p_sites(bam_file, periodic_lengths, offsets):
     import tqdm
 
     import pysam
-    import misc.bio as bio
-    import misc.bio_utils.bed_utils as bed_utils
+    import bio_utils.bio as bio
+    import bio_utils.bed_utils as bed_utils
 
     msg = "Reading BAM file"
     logger.info(msg)
@@ -1050,13 +1068,13 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
                 profile, length, frame, chisq_alpha filters
 
         Imports:
-            misc.bio
+            bio_utils.bio
             numpy
             scipy.stats
 
     """
-    import misc.bio as bio
-    import misc.bio_utils.bed_utils as bed_utils
+    import bio_utils.bio as bio
+    import bio_utils.bed_utils as bed_utils
     import numpy as np
     import scipy.stats
 
@@ -1614,7 +1632,7 @@ def get_random_kl_divergence(kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f, st
 
     kl = math_utils.calculate_symmetric_kl_divergence(p, q, math_utils.calculate_univariate_gaussian_kl)
 
-    return kl
+    return kl, p, q
 
 @ribo_deprecated
 def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition_2, field,
@@ -1627,6 +1645,8 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
         np.random.seed(seed)
 
     random_kls = []
+    random_ps = []
+    random_qs = []
         
     # first, get the field names for which we want significances
     if field == "log_translational_efficiency":
@@ -1649,7 +1669,7 @@ def get_background_kl_distribution(batch, filtered_kl_df, condition_1, condition
         iter_range = np.arange(num_random_samples)
 
     for i in iter_range:
-        kl = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
+        kl, p, q = get_random_kl_divergence(filtered_kl_df, mean_1_f, scale_1_f, mean_2_f, scale_2_f)
         random_kls.append(kl)
                 
     return random_kls
@@ -1706,7 +1726,7 @@ def get_transcript_pvalues(kl_df, condition_1, condition_2, field,
 
     pvals = kl_field.apply(get_pvalue, args=(kls,))
     
-    return m_filter, pvals
+    return m_filter, pvals, random_kls, random_ps.tolist(), random_qs.tolist()
 
 @ribo_deprecated
 def get_significant_differences(condition_1, condition_2, pval_df, 
@@ -2044,7 +2064,7 @@ def get_bitseq_estimates(
             * sample: the name of the respective sample
             * type: "ribo" or "rna"
     """
-    import misc.bio as bio
+    import bio_utils.bio as bio
     import tqdm
     
     msg = "Reading the bitseq tr info file"
@@ -2187,7 +2207,7 @@ def update_gene_id_from_transcript_id(df:pd.DataFrame, config:dict, args=None):
         'transcript_id' column, and the 'gene_id' column is updated
         to include  actual gene identifiers
     """
-    import misc.bio_utils.pyensembl_utils as pyensembl_utils
+    import bio_utils.pyensembl_utils as pyensembl_utils
 
     msg = "Loading Ensembl annotations"
     logger.info(msg)
@@ -2318,7 +2338,7 @@ def get_dominant_transcript_ids(pvalues:pd.DataFrame, config:dict, args):
 
 def get_overlap_data_frame(unique_file, multimappers_file):
     import pandas as pd
-    import misc.bio_utils.bed_utils as bed_utils
+    import bio_utils.bed_utils as bed_utils
 
     msg = "Reading predictions with unique mappers"
     logger.info(msg)

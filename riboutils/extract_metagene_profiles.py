@@ -6,8 +6,8 @@ import numpy as np
 import pandas as pd
 import sys
 
-import misc.bio_utils.bam_utils as bam_utils
-import misc.bio_utils.bed_utils as bed_utils
+import bio_utils.bam_utils as bam_utils
+import bio_utils.bed_utils as bed_utils
 import misc.utils as utils
 
 import logging
