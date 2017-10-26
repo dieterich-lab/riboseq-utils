@@ -4,6 +4,10 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.5] - 2017-10-26
+### Updated
+- Version specifications for prereqs
+
 ## [0.2.4] - 2017-07-17
 ### Updated
 - The `bootstrap-ribo-analysis` script to use `misc.pandas_utils`. Please see
