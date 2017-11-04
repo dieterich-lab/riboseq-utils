@@ -4,6 +4,11 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.6] - In progress
+### Added
+- File name for b-tea violin plots
+
+
 ## [0.2.5] - 2017-10-26
 ### Updated
 - Version specifications for prereqs

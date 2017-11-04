@@ -1073,6 +1073,25 @@ def get_rpkm_fold_change_image_file(
     return os.path.join(base_path, 'plots', 'rpkm-fc', fn)
 
 # used
+def get_rpkm_violin_image_file(
+        base_path,
+        isoform_strategy=None,
+        image_type='pdf',
+        note=None):
+
+    fn = [
+        "rpkm-violin",
+        get_isoform_strategy_string(isoform_strategy),
+        get_note_string(note),
+        ".",
+        image_type
+    ]
+    fn = ''.join(fn)
+
+    return os.path.join(base_path, 'plots', fn)
+
+
+# used
 def get_rpkm_vs_rpkm_image_file(base_path, condition_1, condition_2, 
         is_merged=False, is_isoforms=False, image_type='pdf', field='ribo', note=None):
 
