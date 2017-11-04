@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [0.2.6] - In progress
 ### Added
 - File name for b-tea violin plots
+- Consistent filtering for all b-tea fields
 
 
 ## [0.2.5] - 2017-10-26
