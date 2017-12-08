@@ -12,7 +12,7 @@ def readme():
         return f.read()
 
 setup(name='riboutils',
-        version='0.2.5',
+        version='0.2.6',
         description="This package contains utilities for other ribosome profiling projects.",
         long_description=readme(),
         keywords="ribosome profiling utilities translation",
@@ -31,7 +31,7 @@ setup(name='riboutils',
             'pysam',
             'pyyaml',
             'misc==0.2.5',
-            'bio-utils==0.2.4',
+            'bio-utils==0.2.5',
             'pystan==2.16.0.0'
         ],
         extras_require = {
