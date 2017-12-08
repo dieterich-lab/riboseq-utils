@@ -9,6 +9,7 @@ import sys
 import bio_utils.bam_utils as bam_utils
 import bio_utils.bed_utils as bed_utils
 import misc.utils as utils
+import misc.pandas_utils as pandas_utils
 
 import logging
 import misc.logging_utils as logging_utils
@@ -237,7 +238,7 @@ def main():
 
     msg = "Writing metagene profiles to disk"
     logger.info(msg)
-    utils.write_df(all_metagene_profile_dfs, args.out, index=False)
+    pandas_utils.write_df(all_metagene_profile_dfs, args.out, index=False)
 
 if __name__ == '__main__':
     main()

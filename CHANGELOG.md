@@ -4,6 +4,13 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.2.6] - 2017-12-08
+### Added
+- File name for b-tea violin plots
+- Consistent filtering for all b-tea fields
+- Small changes for Rp-Bp reports
+
+
 ## [0.2.5] - 2017-10-26
 ### Updated
 - Version specifications for prereqs

@@ -6,6 +6,7 @@ import pandas as pd
 
 import misc.logging_utils as logging_utils
 import misc.utils as utils
+import misc.pandas_utils as pandas_utils
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ def main():
     bayes_factors_df = pd.read_csv(args.profile_bayes_factors)
     length_groups = bayes_factors_df.groupby('length')
     periodic_offsets = length_groups.apply(get_most_periodic_offset)
-    utils.write_df(periodic_offsets, args.out, index=False)
+    pandas_utils.write_df(periodic_offsets, args.out, index=False)
 
 if __name__ == '__main__':
     main()
