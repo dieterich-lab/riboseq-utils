@@ -269,14 +269,16 @@ def get_exons(
         base_path, 
         name, 
         is_annotated=False, 
-        is_de_novo=False, 
+        is_de_novo=False,
+        is_orf=False,
         note=None
     ):
 
     note_str = get_note_string(note)
     c = get_annotated_string(is_annotated)
     d = get_de_novo_string(is_de_novo)
-    fn = '{}.orfs-exons{}{}{}.bed.gz'.format(name, c, d, note_str)
+    orf_subscr = 'orfs' if is_orf else 'exons'
+    fn = '{}.{}{}{}{}.bed.gz'.format(name, orf_subscr, c, d, note_str)
     return os.path.join(base_path, 'transcript-index', fn)
  
 
@@ -1071,25 +1073,6 @@ def get_rpkm_fold_change_image_file(
     ]
     fn = ''.join(fn)
     return os.path.join(base_path, 'plots', 'rpkm-fc', fn)
-
-# used
-def get_rpkm_violin_image_file(
-        base_path,
-        isoform_strategy=None,
-        image_type='pdf',
-        note=None):
-
-    fn = [
-        "rpkm-violin",
-        get_isoform_strategy_string(isoform_strategy),
-        get_note_string(note),
-        ".",
-        image_type
-    ]
-    fn = ''.join(fn)
-
-    return os.path.join(base_path, 'plots', fn)
-
 
 # used
 def get_rpkm_vs_rpkm_image_file(base_path, condition_1, condition_2, 

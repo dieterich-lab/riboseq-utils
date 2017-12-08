@@ -12,6 +12,7 @@ import pandas as pd
 import misc.logging_utils as logging_utils
 import misc.parallel as parallel
 import misc.utils as utils
+import misc.pandas_utils as pandas_utils
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,7 @@ def main():
     all_profile_estimates_df = utils.remove_nones(all_profile_estimates_df) 
     all_profile_estimates_df = pd.concat(all_profile_estimates_df)
 
-    utils.write_df(all_profile_estimates_df, args.out, index=False)
+    pandas_utils.write_df(all_profile_estimates_df, args.out, index=False)
 
 if __name__ == '__main__':
     main()
