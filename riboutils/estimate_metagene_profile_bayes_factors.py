@@ -14,6 +14,8 @@ import misc.parallel as parallel
 import misc.utils as utils
 import misc.pandas_utils as pandas_utils
 
+from misc.suppress_stdout_stderr import suppress_stdout_stderr
+
 logger = logging.getLogger(__name__)
 
 default_num_cpus = 1
@@ -210,8 +212,15 @@ def main():
 
     length_groups = metagene_profiles.groupby('length')
 
-    all_profile_estimates_df = parallel.apply_parallel_groups(length_groups, args.num_cpus,
-        estimate_profile_bayes_factors, args, progress_bar=True)
+    with suppress_stdout_stderr():
+        
+        all_profile_estimates_df = parallel.apply_parallel_groups(
+                length_groups, 
+                args.num_cpus,
+                estimate_profile_bayes_factors, 
+                args, 
+                progress_bar=True
+        )
 
     msg = "Combining estimates into one data frame"
     logger.info(msg)
