@@ -10,12 +10,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Consistent filtering for all b-tea fields
 - Small changes for Rp-Bp reports
 
+### Updated
 - Remove deprecated function calls from `extract_metagene_profiles`, 
     `estimate_metagene_profile_bayes_factors` and `select_periodic_offsets`.
 
 ### Added
-- Flag added to differentiate between *exons* file and *orfs* file. See
-    [Issue #1](https://github.com/dieterich-lab/riboseq-utils/issues/1)
+- Flag added to differentiate between *exons* file (list of exons for any given transcript),
+    and *orfs* file (technically, a list of exons per orf). 
+    See [Issue #1](https://github.com/dieterich-lab/riboseq-utils/issues/1) for more details.
 
 ## [0.2.5] - 2017-10-26
 ### Updated
