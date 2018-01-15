@@ -1006,10 +1006,11 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
                             max_bf_var=default_max_bf_var,
                             min_bf_likelihood=default_min_bf_likelihood,
                             chisq_alpha=default_chisq_alpha,
-                            select_longest_by_stop=True):
+                            select_longest_by_stop=True,
+                            use_chi_square=False):
     """ This function applies a set of filters to ORFs to select those which
         are predicted as "translated." This function selects translated ORFs
-        based on the Bayes factor estimates and the chi-square p-values. ORFs
+        based on the Bayes factor estimates or the chi-square p-values. ORFs
         must pass all of the relevant features to be selected as "translated."
         Optionally, among all ORFs which share a stop codon, only the longest
         "translated" ORF is selected.
@@ -1056,16 +1057,18 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
                 be merged based on stop codons: only the longest translated ORF
                 at each stop codon will be returned. Otherwise, all ORFs will
                 be returned.
+            
+            use_chi_square (bool): if True, then the selection is made based on
+                the chi-square p-values only (Rp-chi), otherwise it is based on the Bayes 
+                factor estimates (Rp-Bp).
 
         Returns:
             all_orfs (pd.DataFrame) : all (longest) ORFs which meet the profile,
                  length, frame filters
 
-            bf_longest_orfs (pd.DataFrame) : all longest ORFs which meet the
-                profile, length, frame (min_bf_mean, max_bf_var, min_bf_likelihood) filters
-
-            chisq_longest_orfs (pd.DataFrame) : all longest ORFs which meet the
-                profile, length, frame, chisq_alpha filters
+            predicted_orfs (pd.DataFrame) : all (longest) ORFs which meet the
+                profile, length, frame Bayes factor (min_bf_mean, max_bf_var, min_bf_likelihood) 
+                or chisq_alpha filters
 
         Imports:
             bio_utils.bio
@@ -1084,30 +1087,28 @@ def get_predicted_orfs(bf, min_signal=default_min_profile,
     m_base = get_base_filter(bf, min_signal, min_length)
     all_orfs = bf[m_base]
     
-    
-    # create the selected ORFs based on Bayes factor
-    m_bf =  get_bf_filter(bf, min_bf_mean, max_bf_var, min_bf_likelihood)
-    m_bf_predicted = m_base & m_bf
-    bf_predicted_orfs = bf[m_bf_predicted]
+    # create the selected ORFs based on either Bayes factor or chisq_alpha
+    if use_chi_square:
+        M = len(all_orfs)
+        # for the bonferroni correction, we only correct for the number of tests 
+        # we actually consider that is, we only correct for orfs which pass 
+        # the base filter
+        corrected_significance_level = chisq_alpha / M
 
-    M = len(all_orfs)
-    # for the bonferroni correction, we only correct for the number of tests we actually consider
-    # that is, we only correct for orfs which pass the base filter
-    corrected_significance_level = chisq_alpha / M
-
-    msg = "Corrected significance level: {}".format(corrected_significance_level)
-    logger.debug(msg)
-    
-    m_chisq_pval = bf['chi_square_p'] < corrected_significance_level
-    m_chisq_predicted = m_base & m_chisq_pval
-    chisq_predicted_orfs = bf[m_chisq_predicted]
+        msg = "Corrected significance level: {}".format(corrected_significance_level)
+        logger.debug(msg)
+        
+        m_chisq_pval = all_orfs['chi_square_p'] < corrected_significance_level
+        predicted_orfs = all_orfs[m_chisq_pval]
+    else:
+        m_bf =  get_bf_filter(all_orfs, min_bf_mean, max_bf_var, min_bf_likelihood)
+        predicted_orfs = all_orfs[m_bf]
     
     if select_longest_by_stop:
         all_orfs = bed_utils.get_longest_features_by_end(all_orfs)
-        bf_predicted_orfs = bed_utils.get_longest_features_by_end(bf_predicted_orfs)
-        chisq_predicted_orfs = bed_utils.get_longest_features_by_end(chisq_predicted_orfs)
+        predicted_orfs = bed_utils.get_longest_features_by_end(predicted_orfs)
     
-    return (all_orfs, bf_predicted_orfs, chisq_predicted_orfs)
+    return (all_orfs, predicted_orfs)
    
 ###
 #   Defaults for b-tea scripts

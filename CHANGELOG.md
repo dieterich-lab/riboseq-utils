@@ -4,6 +4,15 @@ All notable changes to the riboseq utilities will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/), 
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [Unreleased]
+### Changed
+- Option `use_chi_square` added to function `get_predicted_orfs`, so selection based on chisq is
+    only made if specified in config file.
+
+### Fixed
+- Bayes factors (or chisq) filtering applied on top of based-filtered ORFs in `get_predicted_orfs` 
+    to avoid Python RuntimeWarning when `bayes_factor_var` is not defined.
+
 ## [0.2.6] - 2017-12-08
 ### Added
 - File name for b-tea violin plots
