@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Bayes factors (or chisq) filtering applied on top of based-filtered ORFs in `get_predicted_orfs` 
     to avoid Python RuntimeWarning when `bayes_factor_var` is not defined.
+    
+### Added
+- Options added to `ribo_filenames.get_gtf`.
 
 ## [0.2.6] - 2017-12-08
 ### Added
