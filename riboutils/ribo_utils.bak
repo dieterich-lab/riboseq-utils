@@ -873,11 +873,14 @@ def smooth_profile(profile, reweighting_iterations=default_reweighting_iteration
 #
 ###
 
-default_min_profile = None
+# these filters have already been used
+default_min_profile = 5
+default_min_length = 0
+
 default_min_bf_mean = 5
 default_max_bf_var = None
-default_min_bf_likelihood = None
-default_min_length = 0
+default_min_bf_likelihood = 0.5
+
 default_chisq_alpha = 0.01
 
 def get_base_filter(bf, min_profile=default_min_profile, min_length=default_min_length):
@@ -907,9 +910,9 @@ def get_base_filter(bf, min_profile=default_min_profile, min_length=default_min_
     if min_profile is None:
         m_profile = bf['profile_sum'] > 0
     else:
-        m_profile = bf['profile_sum'] > min_profile
+        m_profile = bf['profile_sum'] >= min_profile
 
-    m_length = bf['orf_len'] > min_length
+    m_length = bf['orf_len'] >= min_length
     m_x1_gt_x2 = bf['x_1_sum'] > bf['x_2_sum']
     m_x1_gt_x3 = bf['x_1_sum'] > bf['x_3_sum']
 

@@ -104,6 +104,12 @@ def get_merged_string(is_merged):
         m = ".merged-isoforms"
     return m
 
+def get_star_input_string(is_star_input):
+    s = ""
+    if is_star_input:
+        s = ".star-input"
+    return s
+
 def get_micro_string(is_micro):
     m = ""
     if is_micro:
@@ -290,14 +296,18 @@ def get_gtf(
         is_de_novo=False, 
         is_annotated=False, 
         is_merged=False, 
-        is_cds_only=False
+        is_cds_only=False,
+        is_gff3=False,
+        is_star_input=False
     ):
 
     c = get_annotated_string(is_annotated)
     m = get_merged_string(is_merged)
     cds = get_cds_only_string(is_cds_only)
     d = get_de_novo_string(is_de_novo)
-    fn = '{}{}{}{}{}.gtf'.format(name, m, c, d, cds)
+    s = get_star_input_string(is_star_input)
+    ext = 'gff' if is_gff3 else 'gtf'
+    fn = '{}{}{}{}{}{}.{}'.format(name, m, c, d, cds, s, ext)
     return os.path.join(base_path, fn)
 
 ### m

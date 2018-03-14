@@ -14,6 +14,8 @@ import misc.parallel as parallel
 import misc.utils as utils
 import misc.pandas_utils as pandas_utils
 
+from misc.suppress_stdout_stderr import suppress_stdout_stderr
+
 logger = logging.getLogger(__name__)
 
 default_num_cpus = 1
@@ -219,7 +221,7 @@ def main():
     all_profile_estimates_df = utils.remove_nones(all_profile_estimates_df) 
     all_profile_estimates_df = pd.concat(all_profile_estimates_df)
 
-    pandas_utils.write_df(all_profile_estimates_df, args.out, index=False)
+    utils.write_df(all_profile_estimates_df, args.out, index=False)
 
 if __name__ == '__main__':
     main()

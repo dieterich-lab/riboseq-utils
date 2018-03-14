@@ -4,7 +4,8 @@ console_scripts = [
     'extract-metagene-profiles=riboutils.extract_metagene_profiles:main',
     'estimate-metagene-profile-bayes-factors=riboutils.estimate_metagene_profile_bayes_factors:main',
     'select-periodic-offsets=riboutils.select_periodic_offsets:main',
-    'bootstrap-ribo-analysis=riboutils.bootstrap_ribo_analysis:main'
+    'bootstrap-ribo-analysis=riboutils.bootstrap_ribo_analysis:main',
+    'pickle-stan=riboutils.pickle_stan:main'
 ]
 
 def readme():
@@ -12,7 +13,7 @@ def readme():
         return f.read()
 
 setup(name='riboutils',
-        version='0.2.6',
+        version='0.2.7',
         description="This package contains utilities for other ribosome profiling projects.",
         long_description=readme(),
         keywords="ribosome profiling utilities translation",
@@ -30,8 +31,8 @@ setup(name='riboutils',
             'statsmodels',
             'pysam',
             'pyyaml',
-            'misc==0.2.5',
-            'bio-utils==0.2.5',
+            'misc==0.2.8',
+            'bio-utils==0.2.6',
             'pystan==2.16.0.0'
         ],
         extras_require = {
