@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/),
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [0.2.7] - 2018-03-14
 ### Changed
 - Option `use_chi_square` added to function `get_predicted_orfs`, so selection based on chisq is
     only made if specified in config file.
