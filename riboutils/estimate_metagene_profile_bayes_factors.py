@@ -228,7 +228,7 @@ def main():
     all_profile_estimates_df = utils.remove_nones(all_profile_estimates_df) 
     all_profile_estimates_df = pd.concat(all_profile_estimates_df)
 
-    utils.write_df(all_profile_estimates_df, args.out, index=False)
+    pandas_utils.write_df(all_profile_estimates_df, args.out, index=False)
 
 if __name__ == '__main__':
     main()
