@@ -212,8 +212,15 @@ def main():
 
     length_groups = metagene_profiles.groupby('length')
 
-    all_profile_estimates_df = parallel.apply_parallel_groups(length_groups, args.num_cpus,
-        estimate_profile_bayes_factors, args, progress_bar=True)
+    with suppress_stdout_stderr():
+
+        all_profile_estimates_df = parallel.apply_parallel_groups(
+                length_groups,
+                args.num_cpus,
+                estimate_profile_bayes_factors,
+                args,
+                progress_bar=True
+        )
 
     msg = "Combining estimates into one data frame"
     logger.info(msg)
@@ -221,7 +228,7 @@ def main():
     all_profile_estimates_df = utils.remove_nones(all_profile_estimates_df) 
     all_profile_estimates_df = pd.concat(all_profile_estimates_df)
 
-    utils.write_df(all_profile_estimates_df, args.out, index=False)
+    pandas_utils.write_df(all_profile_estimates_df, args.out, index=False)
 
 if __name__ == '__main__':
     main()
