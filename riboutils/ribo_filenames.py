@@ -615,6 +615,16 @@ def get_ribodiff_results(base, condition_1, condition_2, is_unique=False):
     f = base + ".results.tab"
     return f
 
+### call either rna or riboseq bam file
+
+def get_seq_bam(seq, base, name, **kwargs):
+    s = ''
+    if seq == 'rna':
+        s = get_rnaseq_bam(base, name, **kwargs)
+    if seq == 'ribo':
+        s = get_riboseq_bam(base, name, **kwargs)
+    return s
+
 
 ### riboseq
 
