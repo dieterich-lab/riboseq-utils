@@ -87,6 +87,12 @@ def get_isoform_strategy_string(isoform_strategy):
 
     return s
 
+def get_stranded_library_string(stranded):
+    s = ""
+    if (stranded is not None) and (stranded in ['fr', 'rf']):
+        s = ".stranded-{}".format(stranded)
+
+    return s
 
 def get_length_string(length=None):
     l = ""
@@ -640,6 +646,7 @@ def get_riboseq_base(
         is_unique=False, 
         is_cds_only=False,
         is_transcriptome=False,
+        stranded=None,
         is_smooth=False,
         fraction=None, 
         reweighting_iterations=None,
@@ -654,6 +661,7 @@ def get_riboseq_base(
     l = get_length_string(length)
     o = get_offset_string(offset)
     transcriptome = get_transcriptome_string(is_transcriptome)
+    sl = get_stranded_library_string(stranded)
     chisq = get_chisq_string(is_chisq)
     i = get_isoform_strategy_string(isoform_strategy)
     n = get_note_string(note)
@@ -670,6 +678,7 @@ def get_riboseq_base(
         i,
         unique,
         cds_only,
+        sl,
         l,
         o,
         s,
@@ -957,12 +966,14 @@ def get_rnaseq_bam_base(
         is_cds_only=False,
         is_transcriptome=False,
         isoform_strategy=None,
+        stranded=None,
         note=None):
 
     cds_only = get_cds_only_string(is_cds_only)
     unique = get_unique_string(is_unique)
     l = get_length_string(length)
     transcriptome = get_transcriptome_string(is_transcriptome)
+    sl = get_stranded_library_string(stranded)
     i = get_isoform_strategy_string(isoform_strategy)
     n = get_note_string(note)
 
@@ -972,7 +983,8 @@ def get_rnaseq_bam_base(
         transcriptome, 
         i, 
         unique, 
-        cds_only, 
+        cds_only,
+        sl,
         l
     )
 

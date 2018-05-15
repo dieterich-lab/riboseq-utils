@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Added generic file name constructor, and additional options to handle file names
+    to `ribo_filenames`.
+
 ## [0.2.7] - 2018-03-14
 ### Changed
 - Option `use_chi_square` added to function `get_predicted_orfs`, so selection based on chisq is
