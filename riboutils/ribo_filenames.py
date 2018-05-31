@@ -107,7 +107,7 @@ def get_length_string(length=None):
 def get_merged_string(is_merged):
     m = ""
     if is_merged:
-        m = ".merged-isoforms"
+        m = ".merged"
     return m
 
 def get_star_input_string(is_star_input):
@@ -977,7 +977,7 @@ def get_rnaseq_bam_base(
     i = get_isoform_strategy_string(isoform_strategy)
     n = get_note_string(note)
 
-    bam_base = '{}{}{}{}{}{}{}'.format(
+    bam_base = '{}{}{}{}{}{}{}{}'.format(
         name, 
         n, 
         transcriptome, 

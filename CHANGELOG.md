@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - Added generic file name constructor, and additional options to handle file names
     to `ribo_filenames`.
+    
+### Changed
+- Call to BED annotations file, the merged isoform strategy is changed to `merged`,
+    instead of `merged-isoforms`.
+
+### Fixed
+- Missing length field in `ribo_filenames.get_rnaseq_bam_base`.
 
 ## [0.2.7] - 2018-03-14
 ### Changed
