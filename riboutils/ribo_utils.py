@@ -1,3 +1,5 @@
+#! /usr/bin/env python3
+
 import logging
 import os
 import pandas as pd
@@ -8,77 +10,58 @@ logger = logging.getLogger(__name__)
 
 
 class _return_key_dict(dict):
-    def __missing__(self,key):
+    def __missing__(self, key):
         return key
 
+# Define ORFs labels and categories
 
-###
-#   The following labels are used to group similar ORF types.
-###
-orf_type_labels_mapping = {
-    'canonical': ['canonical'],
-    'canonical_variant': ['canonical_extended', 'canonical_truncated'],
-    'five_prime': ['five_prime'],
-    'three_prime': ['three_prime'],
-    'noncoding': ['noncoding'],
-    'novel': ['novel'],
-    'other': [
-        'five_prime_overlap', 
-        'suspect_overlap', 
-        'three_prime_overlap', 
-        'within'
-    ],
-    'novel_overlap': [
-        'novel_canonical', 
-        'novel_canonical_extended', 
-        'novel_canonical_truncated', 
-        'novel_five_prime', 
-        'novel_three_prime', 
-        'novel_noncoding', 
-        'novel_novel', 
-        'novel_five_prime_overlap',
-        'novel_suspect_overlap', 
-        'novel_three_prime_overlap', 
-        'novel_within'
-    ]
-}
 
-orf_type_labels_reverse_mapping = {
-    v:k for k, l in orf_type_labels_mapping.items() for v in l
-}
+orf_type_labels_mapping = {'canonical': ['canonical'],
+                           'canonical_variant':
+                               ['canonical_extended', 'canonical_truncated', 'novel_canonical_extended'],
+                           'within': ['within'],
+                           'five_prime': ['five_prime', 'five_prime_overlap'],
+                           'three_prime': ['three_prime', 'three_prime_overlap'],
+                           'noncoding': ['noncoding', 'novel_noncoding'],
+                           'novel': ['novel'],
+                           'other': ['overlap',
+                                     'novel_overlap',
+                                     'suspect',
+                                     'novel_suspect',
+                                     'novel_canonical_truncated',
+                                     'novel_five_prime',
+                                     'novel_three_prime']}
 
-orf_type_labels_display_name_map = {
-    'canonical': "Canonical",
-    'canonical_variant': "Canonical variant",
-    'five_prime': "uORF",
-    'three_prime': "dORF",
-    'noncoding': "ncRNA",
-    'novel': "de novo only",
-    'other': "Other",
-    'novel_overlap': "de novo overlap"
-}
+orf_type_labels_reverse_mapping = {v: k for k, l in orf_type_labels_mapping.items() for v in l}
 
-orf_type_display_name_map = {
-    'canonical': "Canonical", 
-    'canonical_extended': "Canonical extended", 
-    'canonical_truncated': "Canonical truncated", 
-    'five_prime': "uORF", 
-    'three_prime': "dORF", 
-    'noncoding': "ncRNA", 
-    'five_prime_overlap': "uORF overlap",
-    'suspect_overlap': "Suspect", 
-    'three_prime_overlap': "dORF overlap", 
-    'within': "Within",
-    "novel": "de novo only",
-    'novel_canonical_extended': "de novo canonical extended", 
-    'novel_five_prime': "de novo uORF", 
-    'novel_three_prime': "de novo dORF", 
-    'novel_noncoding': "de novo ncRNA", 
-    'novel_five_prime_overlap': "de novo uORF overlap",
-    'novel_suspect_overlap': "de novo suspect", 
-    'novel_three_prime_overlap': "de novo dORF overlap", 
-    'novel_within': "de novo within",
-}
+orf_type_labels_display_name_map = {'canonical': 'Canonical',
+                                    'canonical_variant': 'Can. (variant)',
+                                    'within': 'Can. (oof)',
+                                    'five_prime': 'uORF',
+                                    'three_prime': 'dORF',
+                                    'noncoding': 'ncORF',
+                                    'novel': 'Novel',
+                                    'other': 'Other'}
+
+orf_type_display_name_map = {'canonical': 'Canonical',
+                             'canonical_extended': 'Can. extended',
+                             'canonical_truncated': 'Can. truncated',
+                             'within': 'Can. oof',
+                             'five_prime': 'uORF',
+                             'three_prime': 'dORF',
+                             'noncoding': 'ncORF',
+                             'five_prime_overlap': 'uoORF',
+                             'three_prime_overlap': 'doORF',
+                             'suspect': 'Suspect',
+                             'overlap': 'Overlap',
+                             'novel': 'Novel',
+                             'novel_canonical_extended': 'Novel can. extended',
+                             'novel_canonical_truncated': 'Novel can. truncated',
+                             'novel_five_prime': 'Novel uORF',
+                             'novel_three_prime': 'Novel dORF',
+                             'novel_noncoding': 'Novel ncORF',
+                             'novel_overlap': 'Novel overlap',
+                             'novel_suspect': 'Novel suspect'}
 
 orf_type_labels = list(orf_type_labels_mapping.keys())
 orf_types = list(orf_type_display_name_map.keys())
